@@ -1,0 +1,29 @@
+# Lean build outputs
+/.lake/
+/build/
+*.olean
+
+# Editor
+.DS_Store
+.vscode/
+.vim
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+
+# Dependencies
+lake-packages/
+
+# Cache
+.cache/
+__pycache__/
+
+# Documentation build
+docs/_build/

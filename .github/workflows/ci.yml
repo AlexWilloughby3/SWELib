@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Lean
+      uses: leanprover/lean4-action@v1
+      with:
+        lean-version: v4.0.0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libssl-dev libpq-dev libcurl4-openssl-dev
+
+    - name: Build spec/
+      run: |
+        lake build SWELib
+
+    - name: Build bridge/
+      run: |
+        lake build SWELibBridge
+
+    - name: Build code/
+      run: |
+        lake build SWELibCode
+
+    - name: Run tests
+      run: |
+        lake test
+
+    - name: Audit bridge axioms
+      run: |
+        bash scripts/audit-bridge.sh
+
+    - name: Report sorry's
+      run: |
+        bash scripts/sorry-report.sh
+
+  check-formatting:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Lean
+      uses: leanprover/lean4-action@v1
+      with:
+        lean-version: v4.0.0
+
+    - name: Check code formatting
+      run: |
+        lake format --check

@@ -1,0 +1,38 @@
+name: Track Sorry Count
+
+on:
+  push:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  count-sorrys:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Count sorry's
+      run: |
+        total=$(grep -r "sorry" spec/ | wc -l)
+        echo "Total sorry's in spec/: $total"
+        bash scripts/sorry-report.sh
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const sorry_count = require('child_process')
+            .execSync('grep -r "sorry" spec/ | wc -l')
+            .toString()
+            .trim();
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `📊 Sorry count: ${sorry_count}\n\nMake sure all sorry's have corresponding GitHub issues tagged \`sorry-debt\`.`
+          });
