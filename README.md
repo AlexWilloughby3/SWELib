@@ -1,5 +1,5 @@
 # SWELib
-
+## Note: This project is still in development and shouldn't be used for any software verification as of now
 A comprehensive formal library for software engineering concepts in Lean 4.
 
 SWELib is organized into three layers:
