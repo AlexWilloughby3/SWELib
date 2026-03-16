@@ -1,11 +1,8 @@
+import SWELib.Security.Pki
+
 /-!
 # Security
 
-Specification placeholder for Security.
+Specification of security primitives: hashing, encryption, certificates (PKI),
+OAuth, JWT, CORS, and RBAC.
 -/
-
-namespace SWELib
-
-/-! TODO: Add specification content -/
-
-end SWELib

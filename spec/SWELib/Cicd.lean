@@ -1,11 +1,10 @@
+import SWELib.Cicd.Pipeline
+import SWELib.Cicd.Deployment
+import SWELib.Cicd.Rollback
+import SWELib.Cicd.GitOps
+
 /-!
 # Cicd
 
-Specification placeholder for Cicd.
+CI/CD pipeline, deployment, rollback, and GitOps specifications.
 -/
-
-namespace SWELib
-
-/-! TODO: Add specification content -/
-
-end SWELib

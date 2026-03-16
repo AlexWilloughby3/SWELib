@@ -42,34 +42,32 @@ Each decision includes:
 
 ---
 
-### D-002: JSON as Inductive Type
+### D-002: JSON Representation (Revised)
 
-**Status:** Decided
-**Date:** 2026-03-14
-**Context:** JSON appears in many systems (APIs, configs, logs). Need a clean formal model.
+**Status:** Deprecated → Use Lean.Data.Json
+**Date:** 2026-03-14 (original), 2026-03-14 (revised)
+**Context:** JSON appears in many systems (APIs, configs, logs). Need a clean formal model. Lean 4's standard library provides `Lean.Data.Json` which already defines a complete JSON inductive type with parser and serializer.
 
 **Decision:**
-- `SWELib.Basics.Json.Value` is an inductive type with constructors:
-  - `null : Value`
-  - `bool (b : Bool) : Value`
-  - `number (n : JsonNumber) : Value`
-  - `string (s : String) : Value`
-  - `array (a : Array Value) : Value`
-  - `object (o : Array (String × Value)) : Value`
+- Use `Lean.Data.Json` from Lean's standard library instead of defining a custom inductive type
+- Higher-level JSON standards (Schema, Pointer, Patch) will be defined in SWELib spec layer on top of `Lean.Data.Json`
+- Code layer utilities will use `Lean.Data.Json` for basic JSON operations
 
 **Rationale:**
-- Inductive types align with RFC 8259 definition
-- Recursive structure naturally models JSON nesting
-- Enables structural induction proofs
+- `Lean.Data.Json` is maintained as part of Lean, reducing maintenance burden
+- Provides proven parser/serializer implementations
+- Already used by other parts of SWELib (JWT module)
+- Allows focusing SWELib efforts on higher-level JSON standards
 
 **Alternatives Considered:**
+- Custom inductive type (original decision): adds maintenance overhead, duplicates existing functionality
 - String representation: loses structure, hard to prove properties
-- Sum types with separate constructors: same as inductive
+- Using external JSON library via FFI: introduces unnecessary trust boundary
 
 **Implications:**
-- Parsing produces an inductive tree
-- Serialization is tree-to-string
-- Schema validation operates on the inductive structure
+- No need for JSON parsing/serialization bridge axioms
+- JSON Schema, Pointer, Patch specs will reference `Lean.Data.Json` type
+- Code layer JSON utilities will import `Lean.Data.Json`
 
 ---
 
@@ -123,6 +121,165 @@ Each decision includes:
 **Implications:**
 - General consensus must be abstract enough to admit many refinements
 - Raft proofs may be lengthy but composable
+
+---
+
+### D-005: HTTP Method as Inductive with Extension
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** HTTP methods include 8 standard methods (RFC 9110 Section 9) but the protocol is extensible — registries and applications define custom methods.
+
+**Decision:**
+- `SWELib.Networking.Http.Method` is an inductive type with constructors for each standard method (GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE) plus an `extension (token : String)` constructor.
+
+**Rationale:**
+- Named constructors enable direct pattern matching on standard methods without string comparison
+- `extension` preserves RFC extensibility — any registered or custom method can be represented
+- Properties like `isSafe` and `isIdempotent` are defined by exhaustive match, so the compiler enforces coverage
+- Theorem `safe_implies_idempotent` is provable by case analysis on constructors
+
+**Alternatives Considered:**
+- String-only representation: loses exhaustiveness checking, properties require string equality guards
+- Finite enum without extension: breaks RFC compliance, cannot represent custom methods
+- Typeclass-based open method set: over-engineered for a fixed set of 8 + extension
+
+**Implications:**
+- Bridge axioms must map between FFI method strings and the inductive
+- Extension methods default to non-safe, non-idempotent (conservative)
+
+---
+
+### D-006: HTTP StatusCode as Nat with Range Proof
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** HTTP status codes are three-digit integers (100–999). There are ~60 registered codes but the space is intentionally open for extension.
+
+**Decision:**
+- `SWELib.Networking.Http.StatusCode` is a structure with a `code : Nat` field and a proof `h_range : 100 ≤ code ∧ code ≤ 999`.
+- Status class (1xx–5xx) is computed from the code at runtime via `statusClass`.
+- Well-known codes are defined as named constants using `by decide` for the range proof.
+
+**Rationale:**
+- A finite enum of ~60 codes would be impractical and non-extensible
+- The range proof ensures only valid 3-digit codes exist, catching misuse at type-check time
+- Computing the class from digits avoids redundant data and keeps the representation minimal
+- Named constants (`StatusCode.ok`, `StatusCode.notFound`) provide convenience without limiting the space
+
+**Alternatives Considered:**
+- Fin 900 (offset by 100): correct range but awkward arithmetic, less readable
+- Inductive with one constructor per code: massive type, not extensible
+- Unguarded Nat: permits invalid codes like 0 or 1000
+
+**Implications:**
+- Theorems about status code properties (e.g., `interim_no_body`) require Nat reasoning
+- Bridge axioms must validate that FFI status codes satisfy the range proof
+
+---
+
+### D-007: YAML as Inductive Representation Graph
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** YAML 1.2 defines a representation graph with three node kinds (scalar, sequence, mapping). Anchors and aliases are serialization concerns, not part of the abstract data model.
+
+**Decision:**
+- `SWELib.Basics.YamlNode` is an inductive type with constructors `scalar`, `sequence`, `mapping`
+- Each node carries a `YamlTag` (optional URI) for typing
+- Anchors/aliases are omitted — they exist only in the serialization layer
+
+**Rationale:**
+- Mirrors the YAML spec's own representation model (§3.2.1)
+- Tags as URIs match the YAML tag resolution scheme
+- Excluding anchors keeps the spec focused on the data model, not presentation
+
+**Alternatives Considered:**
+- Flat key-value model: loses YAML's recursive structure and typed nodes
+- Including anchors: mixes serialization with representation, complicates proofs
+
+**Implications:**
+- Serialization/deserialization must resolve anchors before producing `YamlNode`
+- Tag resolution (core schema → URI) is modeled via constants, not parsing
+
+---
+
+### D-008: XML as Inductive Node Tree
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** XML documents are trees of typed nodes. The XML Information Set defines the abstract data model.
+
+**Decision:**
+- `SWELib.Basics.XmlNode` is an inductive type with constructors: `element`, `text`, `cdata`, `comment`, `processingInstruction`
+- Names are namespace-aware via `XmlName` (localName + optional prefix + namespace URI)
+- DTD/schema modeling is out of scope
+
+**Rationale:**
+- Follows the XML Infoset model directly
+- Namespace-aware names prevent ambiguity in multi-namespace documents
+- DTDs are rarely used in modern XML processing and would add significant complexity
+
+**Alternatives Considered:**
+- String-only representation: loses structure, no well-formedness guarantees
+- Including DTD nodes: massive scope increase with little practical value
+
+**Implications:**
+- Well-formedness constraints (unique attribute names, element root) are functions, not type-level invariants
+- Namespace resolution must happen before constructing `XmlName`
+
+---
+
+### D-009: Regex as Abstract Syntax
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** Regular expressions need formalization, but a full matching engine is a massive effort. The spec should capture structure, not semantics.
+
+**Decision:**
+- `SWELib.Basics.Regex` is an inductive type modeling ERE abstract syntax
+- Constructors: `empty`, `char`, `charClass`, `dot`, `seq`, `alt`, `star`, `plus`, `opt`, `group`
+- Properties like `isNullable` are defined structurally; no matching semantics
+
+**Rationale:**
+- Captures POSIX ERE structure without committing to a matching algorithm
+- Structural properties (nullable, has captures) are provable without a matcher
+- A matching engine belongs in the code layer, not the spec
+
+**Alternatives Considered:**
+- Full matcher formalization: enormous effort, better suited for a dedicated project
+- DFA/NFA representation: implementation detail, not specification
+
+**Implications:**
+- Code-layer regex engines should parse into this AST
+- Matching semantics proofs would extend this spec, not replace it
+
+---
+
+### D-010: UUID as Pair of UInt64
+
+**Status:** Decided
+**Date:** 2026-03-14
+**Context:** UUIDs are 128-bit identifiers. Lean 4 has `UInt64` but no `UInt128`.
+
+**Decision:**
+- `SWELib.Basics.Uuid` is a structure with `hi lo : UInt64`
+- Version extracted from bits [51:48] of `hi`, variant from top bits of `lo`
+- Nil (all-zero) and Max (all-one) are defined as constants
+
+**Rationale:**
+- Two `UInt64` values efficiently represent 128 bits with native arithmetic
+- Bit extraction for version/variant uses standard shift-and-mask operations
+- Aligns with RFC 9562's bit-layout diagrams
+
+**Alternatives Considered:**
+- `ByteArray` of length 16: less efficient for comparisons, no native arithmetic
+- `Fin (2^128)`: Lean's `Fin` with huge bounds has poor computational behavior
+- Four `UInt32`: more fields, no benefit over two `UInt64`
+
+**Implications:**
+- Bridge axioms must convert between FFI byte representations and the `hi`/`lo` pair
+- Bit-level proofs require reasoning about `UInt64` arithmetic
 
 ---
 

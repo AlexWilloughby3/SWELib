@@ -3,9 +3,6 @@ open Lake DSL
 
 package SWELib
 
-require mathlib from git
-  "https://github.com/leanprover-community/mathlib4" @ "v4.0.0"
-
 lean_lib SWELib where
   srcDir := "spec"
   roots := #[`SWELib]

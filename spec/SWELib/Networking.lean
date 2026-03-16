@@ -1,11 +1,9 @@
+import SWELib.Networking.Dns
+import SWELib.Networking.Http
+import SWELib.Networking.Tcp
+
 /-!
 # Networking
 
-Specification placeholder for Networking.
+Formal specifications for networking protocols.
 -/
-
-namespace SWELib
-
-/-! TODO: Add specification content -/
-
-end SWELib
