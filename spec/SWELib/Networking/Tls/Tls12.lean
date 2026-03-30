@@ -1,10 +1,10 @@
+import SWELib.Networking.Tls.Operations
+
 /-!
 # TLS 1.2 Specification
 
 TLS 1.2 specific structures and operations (RFC 5246).
 -/
-
-import SWELib.Networking.Tls.Operations
 
 namespace SWELib.Networking.Tls
 
@@ -157,7 +157,7 @@ def ServerHelloTls12.toServerHello (sh : ServerHelloTls12) : ServerHello :=
   ⟨sh.serverVersion, sh.random, sh.sessionId, cipherSuite, compressionMethod, sh.extensions⟩
 
 /-- TLS 1.2 handshake initiation. -/
-def handshakeInitiateTls12 (supportedVersions : List ProtocolVersion)
+def handshakeInitiateTls12 (_supportedVersions : List ProtocolVersion)
     (cipherSuites : List CipherSuiteTls12)
     (extensions : List Extension) : ClientHelloTls12 :=
   let random : Random := ⟨ByteArray.empty⟩
@@ -177,17 +177,18 @@ def handshakeRespondTls12 (clientHello : ClientHelloTls12)
   ⟨serverVersion, random, sessionId, selectedCipherSuite, compressionMethod, extensions⟩
 
 /-- TLS 1.2 PRF for key derivation (RFC 5246 Section 5). -/
-def prfTls12KeyDerivation (secret : ByteArray) (label : ByteArray) (seed : ByteArray) (length : Nat) : ByteArray :=
+noncomputable def prfTls12KeyDerivation (secret : ByteArray) (label : ByteArray) (seed : ByteArray) (length : Nat) : ByteArray :=
   prfTls12 secret label seed length
 
 /-- TLS 1.2 MAC computation (RFC 5246 Section 6.2.3.1). -/
-def macTls12Compute (key : ByteArray) (seqNum : Nat) (type : ContentType) (version : ProtocolVersion)
+noncomputable def macTls12Compute (key : ByteArray) (_seqNum : Nat) (_type : ContentType) (_version : ProtocolVersion)
     (length : Nat) (fragment : ByteArray) : ByteArray :=
+  let _ := length
   macTls12 key (ByteArray.empty) fragment  -- Simplified
 
 /-- Validate TLS 1.2 Client Hello. -/
 def ClientHelloTls12.validate : ClientHelloTls12 → Bool
-  | ⟨clientVersion, random, sessionId, cipherSuites, compressionMethods, extensions⟩ =>
+  | ⟨clientVersion, random, sessionId, cipherSuites, compressionMethods, _⟩ =>
     clientVersion = .tls12 &&
     random.validate &&
     sessionId.validate &&
@@ -196,7 +197,7 @@ def ClientHelloTls12.validate : ClientHelloTls12 → Bool
 
 /-- Validate TLS 1.2 Server Hello. -/
 def ServerHelloTls12.validate : ServerHelloTls12 → Bool
-  | ⟨serverVersion, random, sessionId, cipherSuite, compressionMethod, extensions⟩ =>
+  | ⟨serverVersion, random, sessionId, _, _, _⟩ =>
     serverVersion = .tls12 &&
     random.validate &&
     sessionId.validate

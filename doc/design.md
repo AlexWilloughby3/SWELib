@@ -2,9 +2,9 @@
 
 ## Overview
 
-SWELib is a comprehensive formal library for software engineering concepts in Lean 4. It is organized into three layers, each with distinct responsibilities and guarantees.
+SWELib is a comprehensive formal library for software engineering concepts in Lean 4. It is organized into two layers, each with distinct responsibilities and guarantees.
 
-## Three-Layer Architecture
+## Two-Layer Architecture
 
 ### Layer 1: spec/ — Formal Specifications
 
@@ -27,44 +27,26 @@ SWELib is a comprehensive formal library for software engineering concepts in Le
 - Document non-obvious proofs
 - Every `sorry` must have a GitHub issue tagged `sorry-debt`
 
-### Layer 2: bridge/ — Trust Boundary
+### Layer 2: impl/ — Executable Implementations
 
-**Purpose:** Explicitly document and axiomatize all assumptions about external code.
-
-**Characteristics:**
-- Axioms asserting that external functions satisfy spec properties
-- Single, auditable surface of all unproven real-world assumptions
-- Separates "what Lean can verify" from "what we must trust"
-- Makes the cost of trust explicit
-
-**Examples:**
-- `SWELibBridge.Syscalls.Socket.bind_conforms` — asserts Linux socket bind conforms to `SWELib.OS.Sockets.SocketLifecycle`
-- `SWELibBridge.Libssl.Handshake.conforms` — asserts OpenSSL TLS handshake conforms to `SWELib.Security.Tls`
-- `SWELibBridge.Oracles.Terraform.correctness` — asserts Terraform plan application is correct
-
-**Guidelines:**
-- Every axiom must have a `-- TRUST: <issue-url>` comment
-- Link to tracking issues documenting the justification
-- Keep axioms focused and explicit
-- Review bridge axioms regularly
-
-### Layer 3: code/ — Executable Implementations
-
-**Purpose:** Provide executable Lean code that can actually run.
+**Purpose:** Provide executable Lean code with FFI bindings and bridge axioms.
 
 **Characteristics:**
-- Imports spec/ for types and bridge/ for extern bindings
+- Imports spec/ for types and definitions
 - Contains `@[extern]` declarations and FFI bindings
-- Links against C libraries (OpenSSL, libpq, libcurl, etc.)
-- Implements algorithms and operators defined in spec/
+- Links against C libraries (OpenSSL, libpq, libcurl, libssh2)
+- Bridge axioms (`impl/SWELibImpl/Bridge/`) explicitly document all assumptions about external code
 
-**Examples:**
-- `SWELibCode.Networking.HttpClient.get` — executable HTTP GET
-- `SWELibCode.Db.PgClient.query` — executable Postgres query
-- `SWELibCode.Validators.JsonValidator.validate` — executable JSON validation
+**Substructure:**
+- `Bridge/` — Axioms asserting external functions satisfy spec properties (trust boundary)
+- `Ffi/` — `@[extern]` declarations for C library bindings
+- `Basics/`, `Networking/`, `Db/`, `Cloud/`, `OS/`, `Security/` — Executable implementations
+- `Validators/` — Standalone validators
+- `ffi/` — C source files for shims
 
 **Guidelines:**
 - Bridge the gap between spec definitions and real implementations
+- Every bridge axiom must have a `-- TRUST: <issue-url>` comment
 - Use FFI conservatively; prefer pure Lean when possible
 - Test executables thoroughly
 - Document any deviations from the spec
@@ -79,33 +61,24 @@ SWELib is a comprehensive formal library for software engineering concepts in Le
     │ imports
     ▼
 ┌────────┐
-│bridge/ │  ← spec/
-└───┬────┘
-    │
-    │ imports
-    ▼
-┌────────┐
-│ code/  │  ← spec/ + bridge/, links C libraries
+│ impl/  │  ← spec/, links C libraries
 └────────┘
 ```
 
 - spec/ is self-contained (no dependencies except Mathlib)
-- bridge/ imports spec/ only
-- code/ imports spec/ and bridge/, plus C shims
+- impl/ imports spec/ and links C shims
 
 ## Key Design Principles
 
 ### 1. Separation of Concerns
 
 - spec/ is about definition and proof
-- bridge/ is about trust and boundaries
-- code/ is about execution
+- impl/ is about execution, FFI, and trust boundaries
 
 ### 2. Auditability
 
-- Bridge axioms are clustered in `bridge/`, not scattered
+- Bridge axioms are clustered in `impl/SWELibImpl/Bridge/`, not scattered
 - Every axiom has a tracking issue
-- Scripts (`scripts/audit-bridge.sh`, `scripts/sorry-report.sh`) enforce discipline
 
 ### 3. Layered Trust
 
@@ -115,9 +88,9 @@ SWELib is a comprehensive formal library for software engineering concepts in Le
 
 ### 4. Reusability
 
-- Spec can be used without bridge/ or code/
-- Bridge can be used as a reference for assumptions
-- Code can be used as a reference implementation
+- Spec can be used without impl/
+- Bridge axioms serve as a reference for assumptions
+- Impl can be used as a reference implementation
 
 ## File Organization
 
@@ -127,38 +100,33 @@ SWELib is a comprehensive formal library for software engineering concepts in Le
 spec/
 ├── SWELib.lean                 # Root import
 ├── SWELib/
-│   ├── Basics/                 # Basic data formats (JSON, URI, etc.)
-│   ├── Networking/             # Network protocols (TCP, HTTP, TLS, etc.)
-│   ├── Distributed/            # Distributed systems (consensus, clocks, etc.)
-│   ├── Db/                     # Database concepts (relations, SQL, ACID, etc.)
-│   ├── Cloud/                  # Cloud infrastructure (K8s, Terraform, etc.)
-│   ├── OS/                     # Operating system concepts (files, processes, etc.)
-│   ├── Security/               # Security (hashing, encryption, OAuth, etc.)
+│   ├── Basics/                 # Data formats (JSON, URI, Base64, etc.)
+│   ├── Foundations/             # LTS, Node, Network, System (abstract framework)
+│   ├── Networking/             # Protocols (TCP, HTTP, TLS, DNS, SSH, etc.)
+│   ├── Distributed/            # Distributed systems (consensus, clocks, CRDTs, etc.)
+│   ├── Db/                     # Database concepts (relations, SQL, connection pool, etc.)
+│   ├── Cloud/                  # Cloud infrastructure (K8s, OCI, Terraform, etc.)
+│   ├── OS/                     # OS concepts (files, processes, sockets, memory, etc.)
+│   ├── Security/               # Security (JWT, PKI, crypto, IAM, etc.)
 │   ├── Observability/          # Observability (logging, metrics, tracing, etc.)
-│   ├── Cicd/                   # CI/CD concepts (pipelines, deployments, etc.)
+│   ├── Cicd/                   # CI/CD concepts (pipelines, deployments, migrations, etc.)
 │   └── Integration/            # Integration theorems (end-to-end proofs)
-└── Specs/                      # Pinned RFC/spec documents
 ```
 
-### Bridge Layer (`bridge/`)
+### Impl Layer (`impl/`)
 
 ```
-bridge/
-├── SWELibBridge.lean           # Root import
-├── SWELibBridge/
-│   ├── Syscalls/               # Linux syscall axioms
-│   ├── Libssl/                 # OpenSSL axioms
-│   ├── Libpq/                  # libpq axioms
-│   ├── Libcurl/                # libcurl axioms
-│   └── Oracles/                # Oracle axioms (Terraform, etc.)
-```
-
-### Code Layer (`code/`)
-
-```
-code/
-├── SWELibCode.lean             # Root import
-├── SWELibCode/
+impl/
+├── SWELibImpl.lean             # Root import
+├── SWELibImpl/
+│   ├── Bridge/                 # Trust boundary — axioms about external code
+│   │   ├── Syscalls/           # Linux syscall axioms
+│   │   ├── Libssl/             # OpenSSL axioms
+│   │   ├── Libpq/              # libpq axioms
+│   │   ├── Libcurl/            # libcurl axioms
+│   │   ├── Libssh/             # libssh axioms
+│   │   ├── Encoding/           # Encoding axioms
+│   │   └── Oracles/            # Oracle axioms (Terraform, etc.)
 │   ├── Ffi/                    # @[extern] declarations
 │   ├── Basics/                 # Executable parsers and serializers
 │   ├── Networking/             # Executable network clients/servers
@@ -175,8 +143,8 @@ code/
 ### Type Names
 
 - Spec: `SWELib.Domain.Concept` (e.g., `SWELib.Networking.Http.Request`)
-- Bridge: `SWELibBridge.Domain.concept_conforms` (e.g., `SWELibBridge.Syscalls.Socket.bind_conforms`)
-- Code: `SWELibCode.Domain.ConceptImpl` (e.g., `SWELibCode.Networking.HttpClientImpl`)
+- Bridge: `SWELibImpl.Bridge.Domain.concept_conforms`
+- Impl: `SWELibImpl.Domain.ConceptImpl`
 
 ### Function Names
 
@@ -192,7 +160,7 @@ code/
 - Verify theorems and lemmas
 - Test properties of definitions
 
-### Code Tests
+### Impl Tests
 
 - Executable tests using Lean's test framework
 - Test FFI bindings
@@ -213,35 +181,33 @@ code/
    - Key theorems and proofs
    - Use `sorry` if needed (link to issue)
 
-2. **Bridge second:** If using external libraries
-   - Add axioms in `bridge/`
-   - Link to tracking issues
-   - Document assumptions
-
-3. **Code third:** Implement executably
-   - Add FFI bindings in `code/Ffi/`
-   - Implement in `code/`
+2. **Impl second:** Implement executably
+   - Add bridge axioms in `impl/SWELibImpl/Bridge/` if using external libraries
+   - Add FFI bindings in `impl/SWELibImpl/Ffi/`
+   - Implement in `impl/SWELibImpl/`
    - Test thoroughly
 
 ### Adding a Bridge Axiom
 
 1. Create a GitHub issue documenting the justification
-2. Add the axiom to the appropriate `bridge/` module
+2. Add the axiom to the appropriate `impl/SWELibImpl/Bridge/` module
 3. Include `-- TRUST: <issue-url>` comment
-4. Run `scripts/audit-bridge.sh` to verify
 
 ### Tracking Sorry
 
 1. Create a GitHub issue tagged `sorry-debt`
 2. Add `sorry` in `spec/` with issue reference
-3. Run `scripts/sorry-report.sh` to verify tracking
-4. Resolve when implementation is complete
+3. Resolve when implementation is complete
 
 ## Supporting Documents
 
-- [trust-boundary.md](trust-boundary.md) — Annotated list of all bridge axioms
-- [representation-decisions.md](representation-decisions.md) — Log of representation choices and rationale
-- [tutorials/](tutorials/) — Step-by-step guides for common tasks
+- [impl/Bridge/trust-boundary.md](impl/Bridge/trust-boundary.md) — Annotated list of all bridge axioms
+- [spec/Basics/representation-decisions.md](spec/Basics/representation-decisions.md) — Log of representation choices and rationale
+- [spec/Foundations/vision.md](spec/Foundations/vision.md) — Vision for system-level formalizations
+- [spec/future-formalization-targets.md](spec/future-formalization-targets.md) — Candidate concepts for formalization
+- [spec/](spec/) — Spec module documentation (mirrors spec/SWELib/ structure)
+- [impl/](impl/) — Impl module documentation (mirrors impl/SWELibImpl/ structure)
+- [test/](test/) — Testing documentation
 
 ## Future Extensions
 

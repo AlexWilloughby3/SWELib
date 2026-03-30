@@ -37,10 +37,12 @@ def Proxy.canForwardTo (p : Proxy) (targetPort : Nat) : Bool :=
 
 /-- Theorems about proxy configuration validation. -/
 theorem valid_proxy_has_valid_port (p : Proxy) (h : p.isValid) : 0 < p.port ∧ p.port < 65536 := by
-  sorry
+  simp [Proxy.isValid] at h
+  exact h.2
 
 theorem no_restrictions_implies_all_ports_allowed (p : Proxy) (h : p.allowedPorts = none) :
     ∀ port, p.allowsPort port := by
-  sorry
+  intro port
+  simp [Proxy.allowsPort, h]
 
 end SWELib.Networking.Proxy

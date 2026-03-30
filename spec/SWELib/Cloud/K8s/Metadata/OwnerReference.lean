@@ -24,16 +24,18 @@ structure OwnerReference where
 
 /-- Check that at most one owner is marked as controller -/
 def atMostOneController (refs : List OwnerReference) : Bool :=
-  refs.filter (fun r => r.controller = some true) |>.length ≤ 1
+  decide ((refs.filter (fun r => r.controller = some true)).length ≤ 1)
 
 -- STRUCTURAL
 theorem atMostOneController_empty :
     atMostOneController [] = true := by
-  sorry
+  simp [atMostOneController]
 
 -- STRUCTURAL
 theorem atMostOneController_singleton (r : OwnerReference) :
     atMostOneController [r] = true := by
-  sorry
+  by_cases h : r.controller = some true
+  · simp [atMostOneController, h]
+  · simp [atMostOneController, h]
 
 end SWELib.Cloud.K8s.Metadata

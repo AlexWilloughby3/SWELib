@@ -38,7 +38,7 @@ def forwardRequest (proxy : Proxy) (req : Http.Request) : Option Http.Request :=
       some (addViaHeader req req.version proxy.host)
 
 /-- Check if a request should be forwarded through a proxy. -/
-def shouldProxyRequest (proxy : Proxy) (req : Http.Request) : Bool :=
+def shouldProxyRequest (proxy : Proxy) (_req : Http.Request) : Bool :=
   Proxy.isValid proxy
 
 /-- Theorems about HTTP proxy behavior. -/

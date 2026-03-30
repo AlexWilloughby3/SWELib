@@ -12,19 +12,19 @@ namespace SWELib.Cloud.K8s.Primitives
 def isValidLabelName (s : String) : Bool :=
   s.length > 0 && s.length ≤ 63 &&
   s.all (fun c => c.isAlphanum || c = '-' || c = '_' || c = '.') &&
-  (s.get? 0).isSome && (s.get? 0).get!.isAlphanum &&
+  (s.front? != none) && s.front?.get!.isAlphanum &&
   (s.back? != none) && s.back?.get!.isAlphanum
 
 /-- The name part of a label key -/
 structure LabelName where
   val : String
   h_valid : isValidLabelName val = true
-  deriving DecidableEq
+  deriving DecidableEq, BEq, Hashable
 
 /-- A Kubernetes label key (simplified: just the name part for now) -/
 structure LabelKey where
   name : LabelName
-  deriving DecidableEq
+  deriving DecidableEq, BEq, Hashable
 
 instance : ToString LabelKey where
   toString k := k.name.val

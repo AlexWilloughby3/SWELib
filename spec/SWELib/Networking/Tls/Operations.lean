@@ -1,12 +1,12 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.StateMachine
+import SWELib.Security.Hashing
+
 /-!
 # TLS Operations
 
 Core operations for TLS protocol with cryptographic abstractions (RFC 8446).
 -/
-
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.StateMachine
-import SWELib.Security.Hashing
 
 namespace SWELib.Networking.Tls
 
@@ -35,7 +35,7 @@ axiom signatureVerify : SignatureScheme → ByteArray → ByteArray → ByteArra
 axiom handshakeTranscriptHash : List HandshakeMessage → ByteArray
 
 /-- Initiate TLS handshake (client side) (RFC 8446 Section 4.1.2). -/
-def handshakeInitiate (supportedVersions : List ProtocolVersion)
+def handshakeInitiate (_supportedVersions : List ProtocolVersion)
     (cipherSuites : List CipherSuite)
     (extensions : List Extension) : ClientHello :=
   let random : Random := ⟨ByteArray.empty⟩  -- Placeholder, actual random would be generated
@@ -56,22 +56,22 @@ def handshakeRespond (clientHello : ClientHello)
   ⟨legacyVersion, random, sessionId, selectedCipherSuite, compressionMethod, extensions⟩
 
 /-- Send application data record (RFC 8446 Section 5.2). -/
-def recordSend (state : FullTlsState) (data : ByteArray) : Option (FullTlsState × TLSCiphertext) :=
+noncomputable def recordSend (state : FullTlsState) (data : ByteArray) : Option (FullTlsState × TLSCiphertext) :=
   if state.canSendApplicationData then
     let keys := state.connectionState.trafficKeys
     let seqNum := state.connectionState.writeSequenceNumber
-    let ciphertext := recordEncrypt keys.clientWriteKey keys.clientWriteIV data seqNum
+    let ciphertext := recordEncrypt keys.clientWriteKey keys.clientWriteIV ByteArray.empty seqNum data
     let newState := state.withConnectionState (state.connectionState.incrementWriteSequence)
     some (newState, ciphertext)
   else
     none
 
 /-- Receive application data record (RFC 8446 Section 5.2). -/
-def recordReceive (state : FullTlsState) (ciphertext : TLSCiphertext) : Option (FullTlsState × ByteArray) :=
+noncomputable def recordReceive (state : FullTlsState) (ciphertext : TLSCiphertext) : Option (FullTlsState × ByteArray) :=
   if state.canReceiveApplicationData then
     let keys := state.connectionState.trafficKeys
     let seqNum := state.connectionState.readSequenceNumber
-    match recordDecrypt keys.serverWriteKey keys.serverWriteIV seqNum ciphertext with
+    match recordDecrypt keys.serverWriteKey keys.serverWriteIV ByteArray.empty seqNum ciphertext with
     | some plaintext =>
       let newState := state.withConnectionState (state.connectionState.incrementReadSequence)
       some (newState, plaintext)
@@ -80,18 +80,18 @@ def recordReceive (state : FullTlsState) (ciphertext : TLSCiphertext) : Option (
     none
 
 /-- Send alert (RFC 8446 Section 6). -/
-def alertSend (state : FullTlsState) (alert : Alert) : Option (FullTlsState × TLSCiphertext) :=
-  let plaintext : TLSPlaintext := alert.toTLSPlaintext
+noncomputable def alertSend (state : FullTlsState) (alert : Alert) : Option (FullTlsState × TLSCiphertext) :=
+  let _plaintext : TLSPlaintext := alert.toTLSPlaintext
   -- For simplicity, we'll reuse recordSend with a placeholder
   recordSend state ByteArray.empty  -- Placeholder
 
 /-- Close connection (RFC 8446 Section 6.1). -/
-def connectionClose (state : FullTlsState) : Option (FullTlsState × TLSCiphertext) :=
+noncomputable def connectionClose (state : FullTlsState) : Option (FullTlsState × TLSCiphertext) :=
   let alert := closeNotifyAlert
   alertSend state alert
 
 /-- Update traffic keys (RFC 8446 Section 4.6.3). -/
-def keyUpdate (state : FullTlsState) (request : KeyUpdateRequest) : Option FullTlsState :=
+def keyUpdate (state : FullTlsState) (_request : KeyUpdateRequest) : Option FullTlsState :=
   if state.protocolState = .connected then
     -- In practice, this would derive new traffic keys
     let newConnState := state.connectionState.resetSequenceNumbers
@@ -100,26 +100,27 @@ def keyUpdate (state : FullTlsState) (request : KeyUpdateRequest) : Option FullT
     none
 
 /-- Resume session with PSK (RFC 8446 Section 4.2.11). -/
-def sessionResume (state : FullTlsState) (psk : ByteArray) : Option FullTlsState :=
+def sessionResume (state : FullTlsState) (_psk : ByteArray) : Option FullTlsState :=
   -- In practice, this would use the PSK to establish a new connection
   some state  -- Placeholder
 
 /-- Validate certificate chain (RFC 8446 Section 4.4.2). -/
-def certificateValidateOp (chain : CertificateChain) : Bool :=
+noncomputable def certificateValidateOp (chain : CertificateChain) : Bool :=
   certificateValidate chain
 
 /-- Verify certificate signature (RFC 8446 Section 4.4.3). -/
-def certificateVerifyOp (scheme : SignatureScheme) (publicKey : ByteArray) (message : ByteArray) (signature : ByteArray) : Bool :=
+noncomputable def certificateVerifyOp (scheme : SignatureScheme) (publicKey : ByteArray) (message : ByteArray) (signature : ByteArray) : Bool :=
   signatureVerify scheme publicKey message signature
 
 /-- Compute finished verify data (RFC 8446 Section 4.4.4). -/
-def computeFinishedVerifyData (baseKey : ByteArray) (transcriptHash : ByteArray) : ByteArray :=
+noncomputable def computeFinishedVerifyData (baseKey : ByteArray) (transcriptHash : ByteArray) : ByteArray :=
   finishedVerifyData baseKey transcriptHash "tls13 finished".toUTF8
 
 /-- Derive traffic keys from master secret (RFC 8446 Section 7.1). -/
-def deriveTrafficKeys (masterSecret : ByteArray) (clientHelloRandom : ByteArray) (serverHelloRandom : ByteArray)
+noncomputable def deriveTrafficKeys (masterSecret : ByteArray) (clientHelloRandom : ByteArray) (serverHelloRandom : ByteArray)
     (cipherSuite : CipherSuite) : TrafficKeys :=
   -- Placeholder implementation
+  let _ := cipherSuite
   let keyLength := 16  -- AES-128 key length
   let ivLength := 12   -- GCM IV length
   let clientWriteKey := keyDerivation masterSecret clientHelloRandom "tls13 key".toUTF8 keyLength

@@ -25,7 +25,7 @@ structure TunnelState where
   deriving DecidableEq, Repr
 
 /-- Establish a TCP tunnel via CONNECT method. -/
-def establishTunnel (proxy : Proxy) (target : String) (port : Nat) : Option TunnelState :=
+def establishTunnel (proxy : Proxy) (_target : String) (port : Nat) : Option TunnelState :=
   -- Check if proxy allows this port
   if ¬Proxy.allowsPort proxy port then
     none
@@ -68,12 +68,16 @@ def closeTunnel (tunnel : TunnelState) : TunnelState :=
 
 /-- Theorems about tunnel behavior. -/
 theorem tunnel_data_integrity (tunnel : TunnelState) (data : ByteArray) :
-    let (outData, tunnel') := forwardBlind tunnel data
+    let (outData, _tunnel') := forwardBlind tunnel data
     tunnel.isOpen → outData = data := by
-  sorry
+  by_cases h : tunnel.isOpen
+  · simp [forwardBlind, h]
+  · simp [forwardBlind, h]
 
 theorem closed_tunnel_forward_nothing (tunnel : TunnelState) (data : ByteArray) :
     ¬tunnel.isOpen → (forwardBlind tunnel data).1 = ByteArray.empty := by
-  sorry
+  by_cases h : tunnel.isOpen
+  · simp [forwardBlind, h]
+  · simp [forwardBlind, h]
 
 end SWELib.Networking.Proxy

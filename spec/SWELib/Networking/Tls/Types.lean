@@ -1,10 +1,10 @@
+import SWELib.Basics.Bytes
+
 /-!
 # TLS Protocol Types
 
 Core type definitions for TLS protocol (RFC 8446 for TLS 1.3, RFC 5246 for TLS 1.2).
 -/
-
-import SWELib.Basics.Bytes
 
 namespace SWELib.Networking.Tls
 

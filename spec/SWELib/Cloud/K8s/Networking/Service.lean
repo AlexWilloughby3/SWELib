@@ -42,7 +42,6 @@ structure Service where
   metadata : ObjectMeta
   spec : ServiceSpec
   status : ServiceStatus := {}
-  deriving DecidableEq
 
 /-- Get the cluster IP of a service -/
 def Service.getClusterIP (svc : Service) : Option String :=

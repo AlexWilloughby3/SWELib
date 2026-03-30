@@ -246,7 +246,7 @@ def switchBlueGreen (cfg : BlueGreenConfig) : BlueGreenConfig :=
 theorem selectorTemplateAgreement :
     selectorMatchesTemplate spec = true ↔
     ∀ kv ∈ spec.selector, kv ∈ spec.template.labels := by
-  sorry
+  simp [selectorMatchesTemplate, List.all_eq_true]
 
 /-- Scale up bound equals desired plus maxSurge. -/
 theorem scaleUpBound_eq : scaleUpBound d cfg = d + cfg.maxSurge := by
@@ -256,7 +256,9 @@ theorem scaleUpBound_eq : scaleUpBound d cfg = d + cfg.maxSurge := by
 theorem completeImpliesAllUpdated :
     markComplete spec status = true →
     status.updatedReplicas = spec.replicas ∧ status.availableReplicas = spec.replicas := by
-  sorry
+  intro h
+  simp [markComplete, Bool.and_eq_true, beq_iff_eq] at h
+  exact ⟨h.1.1, h.1.2⟩
 
 /-- A paused deployment always reports paused phase. -/
 theorem pausedNoRollout :
@@ -267,7 +269,9 @@ theorem pausedNoRollout :
 /-- Switching blue/green twice returns to original configuration. -/
 theorem switchBlueGreen_involution :
     switchBlueGreen (switchBlueGreen cfg) = cfg := by
-  sorry
+  cases cfg with
+  | mk activeSlot inactiveSpec serviceSelector =>
+      cases activeSlot <;> rfl
 
 /-- RollingUpdateConfig always has maxSurge + maxUnavailable > 0. -/
 theorem h_valid_positive : ∀ cfg : RollingUpdateConfig, cfg.maxSurge + cfg.maxUnavailable > 0 :=
@@ -277,6 +281,14 @@ theorem h_valid_positive : ∀ cfg : RollingUpdateConfig, cfg.maxSurge + cfg.max
 theorem failedRequiresDeadline :
     checkProgress spec status elapsed = .failed →
     elapsed ≥ spec.progressDeadlineSeconds ∧ status.updatedReplicas < spec.replicas := by
-  sorry
+  intro h
+  by_cases hPaused : spec.paused
+  · simp [checkProgress, hPaused] at h
+  · by_cases hDeadline :
+      elapsed ≥ spec.progressDeadlineSeconds ∧ status.updatedReplicas < spec.replicas
+    · exact hDeadline
+    · by_cases hComplete : markComplete spec status = true
+      · simp [checkProgress, hPaused, hDeadline, hComplete] at h
+      · simp [checkProgress, hPaused, hDeadline, hComplete] at h
 
 end SWELib.Cicd.Deployment

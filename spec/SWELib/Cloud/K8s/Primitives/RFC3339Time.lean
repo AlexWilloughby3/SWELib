@@ -19,7 +19,7 @@ instance : ToString RFC3339Time where
   toString t := s!"1970-01-01T00:00:{t.timestamp.seconds}Z"  -- Simplified RFC3339 representation
 
 /-- Parse an RFC 3339 timestamp string (simplified) -/
-def RFC3339Time.parse (s : String) : Option RFC3339Time :=
+def RFC3339Time.parse (_s : String) : Option RFC3339Time :=
   -- Simplified: just return a default value for now
   some ⟨NumericDate.ofSeconds 0⟩
 

@@ -10,12 +10,10 @@ import SWELib.Cloud.K8s.Invariants.Lifecycle
 import SWELib.Cloud.K8s.Invariants.Pod
 import SWELib.Cloud.K8s.Invariants.Service
 
-/-- Invariants for Kubernetes resources (Kubernetes spec section 7) -/
-
 namespace SWELib.Cloud.K8s
 
 -- Re-export all invariants
-export Invariants (
+export SWELib.Cloud.K8s.Invariants (
   -- Identity invariants
   inv1_uid_unique
   inv2_name_unique_in_namespace

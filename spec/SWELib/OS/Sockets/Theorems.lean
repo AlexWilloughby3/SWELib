@@ -81,7 +81,7 @@ theorem connect_already_connected_eisconn (s : SocketSystemState)
 /-- After socket(), the entry exists and is unbound. -/
 theorem socket_creates_unbound (s : SocketSystemState)
     (family : AddressFamily) (sockType : SocketType) (newFd : Nat)
-    (h_free : s.fdTable newFd ≠ some (.open .file) ∧
+    (_h_free : s.fdTable newFd ≠ some (.open .file) ∧
               s.fdTable newFd ≠ some (.open .socket) ∧
               s.fdTable newFd ≠ some (.open .pipe) ∧
               s.fdTable newFd ≠ some (.open .epoll)) :

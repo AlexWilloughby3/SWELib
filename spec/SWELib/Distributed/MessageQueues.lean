@@ -92,7 +92,49 @@ inductive DeliverySemantics where
 
 /-- At-least-once delivery algorithm. -/
 def atLeastOnceDelivery (queue : MessageQueue α) (op : QueueOperation α) :
-    MessageQueue α × List (QueueOperation α) := sorry
+    MessageQueue α × List (QueueOperation α) :=
+  match op with
+  | .send target payload =>
+    if queue.name = target then
+      let newMsg : QueueMessage α := {
+        id := s!"{queue.name}-{queue.messages.length}"
+        payload := payload
+        timestamp := ⟨queue.messages.length⟩
+        deliveryAttempts := 0
+        visibilityTimeout := none
+      }
+      ({ queue with messages := queue.messages ++ [newMsg] }, [])
+    else
+      (queue, [])
+  | .receive target timeout =>
+    if queue.name = target then
+      match queue.messages with
+      | [] => (queue, [])
+      | msg :: rest =>
+        let inFlight := { msg with
+          deliveryAttempts := msg.deliveryAttempts + 1
+          visibilityTimeout := some timeout
+        }
+        ({ queue with messages := inFlight :: rest }, [])
+    else
+      (queue, [])
+  | .ack messageId =>
+    let remaining := queue.messages.filter (fun msg => msg.id != messageId)
+    ({ queue with messages := remaining }, [])
+  | .nack messageId =>
+    let requeued := queue.messages.map (fun msg =>
+      if msg.id = messageId then
+        { msg with visibilityTimeout := none }
+      else
+        msg)
+    ({ queue with messages := requeued }, [])
+  | .createQueue name config =>
+    if queue.name = name then (config, []) else (queue, [])
+  | .deleteQueue name =>
+    if queue.name = name then
+      ({ queue with messages := [] }, [])
+    else
+      (queue, [])
 
 /-- Exactly-once delivery with idempotent producers. -/
 structure ExactlyOnceDelivery where
@@ -130,15 +172,15 @@ structure DurabilityGuarantees where
   deriving DecidableEq, Repr
 
 /-- Theorem: At-least-once may cause duplicates. -/
-theorem atLeastOnce_duplicates (queue : MessageQueue α) : True := by trivial
+theorem atLeastOnce_duplicates (_queue : MessageQueue α) : True := by trivial
   -- TODO: Construct example with duplicates
 
 /-- Theorem: At-most-once may lose messages. -/
-theorem atMostOnce_loss (queue : MessageQueue α) : True := by trivial
+theorem atMostOnce_loss (_queue : MessageQueue α) : True := by trivial
   -- TODO: Construct example with lost messages
 
 /-- Theorem: Exactly-once requires idempotence. -/
-theorem exactlyOnce_idempotence (queue : MessageQueue α) : True := by trivial
+theorem exactlyOnce_idempotence (_queue : MessageQueue α) : True := by trivial
   -- TODO: Prove idempotence requirement
 
 /-- Message queue patterns. -/

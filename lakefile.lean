@@ -7,11 +7,7 @@ lean_lib SWELib where
   srcDir := "spec"
   roots := #[`SWELib]
 
-lean_lib SWELibBridge where
-  srcDir := "bridge"
-  roots := #[`SWELibBridge]
-
-lean_lib SWELibCode where
-  srcDir := "code"
-  roots := #[`SWELibCode]
-  moreLinkArgs := #["-lssl", "-lcrypto", "-lpq", "-lcurl"]
+lean_lib SWELibImpl where
+  srcDir := "impl"
+  roots := #[`SWELibImpl]
+  moreLinkArgs := #["-lssl", "-lcrypto", "-lpq", "-lcurl", "-lssh2"]

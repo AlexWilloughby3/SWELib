@@ -1,3 +1,12 @@
+import SWELib.Db.Sql
+import SWELib.Db.ConnectionPool
+import SWELib.Db.Transactions
+import SWELib.Db.Indexes
+import SWELib.Db.KeyValue
+import SWELib.Db.Document
+import SWELib.Db.Migrations
+import SWELib.Db.Relational
+
 /-!
 # Database Specifications
 
@@ -17,25 +26,6 @@ semantics, connection pooling, transactions, indexes, and more.
 - **`Relational`** – Core relational model concepts
 -/
 
-import SWELib.Db.Sql
-import SWELib.Db.ConnectionPool
-import SWELib.Db.Transactions
-import SWELib.Db.Indexes
-import SWELib.Db.KeyValue
-import SWELib.Db.Document
-import SWELib.Db.Migrations
-import SWELib.Db.Relational
-
 namespace SWELib.Db
-
--- Re‑export all database submodules
-export Sql
-export ConnectionPool
-export Transactions
-export Indexes
-export KeyValue
-export Document
-export Migrations
-export Relational
 
 end SWELib.Db

@@ -68,6 +68,12 @@ def isCompressedLayer (mt : MediaType) : Bool :=
 /-- STRUCTURAL: Compressed layers are layers. -/
 theorem compressed_layer_is_layer (mt : MediaType) :
     isCompressedLayer mt = true → isLayerType mt = true := by
-  sorry  -- Deferred: Bool reasoning about || operations
+  intro h
+  unfold isCompressedLayer isLayerType at *
+  by_cases hGzip : mt == mediaTypeLayerGzip
+  · simp [hGzip]
+  · by_cases hZstd : mt == mediaTypeLayerZstd
+    · simp [hGzip, hZstd]
+    · simp [hGzip, hZstd] at h
 
 end SWELib.Cloud.OciImage

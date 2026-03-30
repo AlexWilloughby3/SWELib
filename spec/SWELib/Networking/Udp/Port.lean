@@ -51,7 +51,7 @@ def PORT_RADIUS : Port := 1812
 def PORT_RADIUS_ACCT : Port := 1813
 
 /-- Check if a port is valid (0-65535, with 0 meaning "no port specified") -/
-def isValidPort (p : Port) : Bool := true  -- All UInt16 values are valid
+def isValidPort (_ : Port) : Bool := true  -- All UInt16 values are valid
 
 /-- Check if a port is a well-known port (1-1023) -/
 def isWellKnownPort (p : Port) : Bool :=

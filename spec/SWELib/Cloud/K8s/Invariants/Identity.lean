@@ -28,19 +28,19 @@ axiom inv1_uid_unique :
 axiom inv2_name_unique_in_namespace :
     ∀ (p1 p2 : Pod),
     p1.metadata.name = p2.metadata.name →
-    p1.metadata.namespace = p2.metadata.namespace →
+    p1.metadata.«namespace» = p2.metadata.«namespace» →
     p1.metadata.uid = p2.metadata.uid
 
 -- REQUIRES_HUMAN: INV-3: UIDs never change for a resource
 axiom inv3_uid_immutable :
     ∀ (pod : Pod) (params : UpdateParams) (result : Pod),
-    podUpdate pod params = IO.pure (OperationResult.ok result) →
+    podUpdate params = pure (OperationResult.ok result) →
     result.metadata.uid = pod.metadata.uid
 
 -- REQUIRES_HUMAN: INV-4: Names cannot be changed via update
 axiom inv4_name_immutable :
     ∀ (pod : Pod) (params : UpdateParams) (result : Pod),
-    podUpdate pod params = IO.pure (OperationResult.ok result) →
+    podUpdate params = pure (OperationResult.ok result) →
     result.metadata.name = pod.metadata.name
 
 end SWELib.Cloud.K8s.Invariants

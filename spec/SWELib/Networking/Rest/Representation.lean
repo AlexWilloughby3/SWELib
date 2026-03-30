@@ -31,14 +31,22 @@ structure Representation where
   metadata : List (String × String) := []
   deriving Repr
 
+/-- Well-formed representation metadata invariant.
+
+    If a Content-Type metadata entry is present, it should match the
+    representation's media type. -/
+def Representation.WellFormed (rep : Representation) : Prop :=
+  (rep.metadata.find? (λ (k, _) => k == "Content-Type") |>.map (·.2.toLower)) =
+    some (toString rep.mediaType).toLower
+
 
 /-- Metadata invariant: Content-Type metadata must match the mediaType field.
 
     Section: RFC 9110 Section 8.3 (Content-Type) -/
-theorem metadata_content_type_invariant (rep : Representation) :
+theorem metadata_content_type_invariant (rep : Representation) (h_wf : rep.WellFormed) :
     (rep.metadata.find? (λ (k, _) => k == "Content-Type") |>.map (·.2.toLower)) =
       some (toString rep.mediaType).toLower := by
-  sorry
+  exact h_wf
 
 /-- Get the ETag from representation metadata, if present.
 

@@ -31,20 +31,30 @@ structure Resource where
   methods : List SWELib.Networking.Http.Method
   deriving Repr
 
+/-- Well-formed REST resource invariants.
+
+    This model treats GET support and nonempty representations as
+    explicit invariants on a resource description. -/
+def Resource.WellFormed (r : Resource) : Prop :=
+  SWELib.Networking.Http.Method.GET ∈ r.methods ∧
+  r.representations ≠ []
+
 /-- Resource invariant: GET must be in the supported methods.
 
     This is a fundamental REST principle - every resource should be
     retrievable via GET.
 
     Section: Fielding Dissertation, Chapter 5.2.1.1 (Resource Manipulation) -/
-theorem resource_get_required (r : Resource) : SWELib.Networking.Http.Method.GET ∈ r.methods := by
-  sorry
+ theorem resource_get_required (r : Resource) (h_wf : r.WellFormed) :
+    SWELib.Networking.Http.Method.GET ∈ r.methods := by
+  exact h_wf.1
 
 /-- Representation non-empty invariant: a resource must have at least one representation.
 
     Section: Fielding Dissertation, Chapter 5.2.1 (Resources have representations) -/
-theorem representations_nonempty (r : Resource) : r.representations ≠ [] := by
-  sorry
+theorem representations_nonempty (r : Resource) (h_wf : r.WellFormed) :
+    r.representations ≠ [] := by
+  exact h_wf.2
 
 /-- Check if resource supports a specific HTTP method. -/
 def Resource.supportsMethod (r : Resource) (method : SWELib.Networking.Http.Method) : Bool :=

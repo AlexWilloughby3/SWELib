@@ -79,6 +79,8 @@ theorem ImageIndex.manifests_have_platform (idx : ImageIndex) :
 /-- ALGEBRAIC: Selected manifest is from index. -/
 theorem ImageIndex.selectManifest_in_list (idx : ImageIndex) (p : Platform) (d : Descriptor) :
     idx.selectManifest p = some d → d ∈ idx.manifests := by
-  sorry  -- Proof deferred: List.find? semantics
+  intro h
+  unfold ImageIndex.selectManifest at h
+  exact List.mem_of_find?_eq_some h
 
 end SWELib.Cloud.OciImage

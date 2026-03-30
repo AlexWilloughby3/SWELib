@@ -1,11 +1,11 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.HandshakeMessages
+
 /-!
 # TLS Record Layer
 
 Record layer structures for TLS protocol (RFC 8446 Section 5).
 -/
-
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.HandshakeMessages
 
 namespace SWELib.Networking.Tls
 
@@ -50,18 +50,18 @@ abbrev ApplicationData := ByteArray
 
 /-- Validate that a TLSPlaintext has valid fragment length (RFC 8446 Section 5.1). -/
 def TLSPlaintext.validate : TLSPlaintext → Bool
-  | ⟨type, legacyRecordVersion, fragment⟩ =>
+  | ⟨_, _, fragment⟩ =>
     fragment.size ≤ 16384  -- Maximum TLS record size
 
 /-- Validate that a TLSCiphertext has valid encrypted record length (RFC 8446 Section 5.2). -/
 def TLSCiphertext.validate : TLSCiphertext → Bool
-  | ⟨opaqueType, legacyRecordVersion, length, encryptedRecord⟩ =>
+  | ⟨_, _, length, encryptedRecord⟩ =>
     encryptedRecord.size = length.toNat &&
     encryptedRecord.size ≤ 16384 + 256  -- Max plaintext + overhead
 
 /-- Validate that an Alert has valid level and description. -/
 def Alert.validate : Alert → Bool
-  | ⟨level, description⟩ => true  -- All combinations are valid
+  | ⟨_, _⟩ => true  -- All combinations are valid
 
 /-- Validate that a ChangeCipherSpec has the correct type (RFC 5246 Section 7.2). -/
 def ChangeCipherSpec.validate : ChangeCipherSpec → Bool
@@ -69,6 +69,7 @@ def ChangeCipherSpec.validate : ChangeCipherSpec → Bool
 
 /-- Create a TLSPlaintext from a handshake message. -/
 def HandshakeMessage.toTLSPlaintext (msg : HandshakeMessage) : TLSPlaintext :=
+  let _ := msg
   ⟨.handshake, .tls13, ByteArray.empty⟩  -- Placeholder, actual serialization would be needed
 
 /-- Create a TLSPlaintext from application data. -/
@@ -77,10 +78,12 @@ def ApplicationData.toTLSPlaintext (data : ApplicationData) : TLSPlaintext :=
 
 /-- Create a TLSPlaintext from an alert. -/
 def Alert.toTLSPlaintext (alert : Alert) : TLSPlaintext :=
+  let _ := alert
   ⟨.alert, .tls13, ByteArray.empty⟩  -- Placeholder
 
 /-- Create a TLSPlaintext from a ChangeCipherSpec (TLS 1.2 only). -/
 def ChangeCipherSpec.toTLSPlaintext (ccs : ChangeCipherSpec) : TLSPlaintext :=
+  let _ := ccs
   ⟨.changeCipherSpec, .tls12, ByteArray.empty⟩  -- Placeholder
 
 /-- Check if a TLSPlaintext contains a handshake message. -/

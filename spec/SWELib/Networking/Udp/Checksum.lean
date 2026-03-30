@@ -45,10 +45,10 @@ private def onesComplementSum (data : ByteArray) : UInt32 :=
       sum (i + 2) newAcc
   -- Fold carries
   let s := sum 0 0
-  let folded := (s &&& 0xFFFF) + (s >>> 16)
+  let folded := (s &&& (0xFFFF : UInt32)) + (s >>> 16)
   -- If still > 0xFFFF, fold again (at most once needed)
-  if folded > 0xFFFF then
-    (folded &&& 0xFFFF) + (folded >>> 16)
+  if folded > (0xFFFF : UInt32) then
+    (folded &&& (0xFFFF : UInt32)) + (folded >>> 16)
   else
     folded
 
@@ -57,7 +57,7 @@ private def serializePseudoHeader (pseudo : PseudoHeader) : ByteArray :=
   match pseudo.version with
   | 4 =>
       -- IPv4 pseudo-header (RFC 768): 12 bytes
-      let buf : ByteArray := ByteArray.mkEmpty 12
+      let buf : ByteArray := ByteArray.empty
       let buf := buf.append pseudo.sourceAddress  -- 4 bytes
       let buf := buf.append pseudo.destinationAddress  -- 4 bytes
       let buf := buf.push 0  -- zero byte
@@ -69,7 +69,7 @@ private def serializePseudoHeader (pseudo : PseudoHeader) : ByteArray :=
       buf.push lenLow
   | 6 =>
       -- IPv6 pseudo-header (RFC 2460): 40 bytes
-      let buf : ByteArray := ByteArray.mkEmpty 40
+      let buf : ByteArray := ByteArray.empty
       let buf := buf.append pseudo.sourceAddress  -- 16 bytes
       let buf := buf.append pseudo.destinationAddress  -- 16 bytes
       -- 32-bit UDP length (big-endian)
@@ -93,7 +93,7 @@ private def serializePseudoHeader (pseudo : PseudoHeader) : ByteArray :=
 
 /-- Serialize UDP header to byte array for checksum computation -/
 private def serializeHeader (header : Header) : ByteArray :=
-  let buf : ByteArray := ByteArray.mkEmpty 8
+  let buf : ByteArray := ByteArray.empty
   let push16 (buf : ByteArray) (val : UInt16) : ByteArray :=
     let high := UInt8.ofNat ((val >>> 8).toNat)
     let low := UInt8.ofNat ((val &&& 0xFF).toNat)
@@ -112,7 +112,7 @@ def udpChecksum (pseudoHeader : PseudoHeader) (header : Header) (payload : ByteA
   let sum := onesComplementSum combined
   -- One's complement (invert bits)
   let complement := ~~~sum
-  let result16 := UInt16.ofUInt32 (complement &&& 0xFFFF)
+  let result16 := UInt16.ofNat ((complement &&& (0xFFFF : UInt32)).toNat)
   -- RFC 768: If computed checksum is zero, transmit as all ones (0xFFFF)
   if result16 = 0 then 0xFFFF else result16
 
@@ -123,7 +123,7 @@ def rawChecksum (pseudoHeader : PseudoHeader) (header : Header) (payload : ByteA
   let combined := pseudoBytes ++ headerBytes ++ payload
   let sum := onesComplementSum combined
   let complement := ~~~sum
-  UInt16.ofUInt32 (complement &&& 0xFFFF)
+  UInt16.ofNat ((complement &&& (0xFFFF : UInt32)).toNat)
 
 theorem udpChecksum_eq_rawChecksum_or_ffff (pseudo : PseudoHeader) (header : Header) (payload : ByteArray) :
     udpChecksum pseudo header payload =

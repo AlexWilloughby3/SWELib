@@ -1,13 +1,16 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.BasicStructures
+
 /-!
 # TLS Extensions
 
 Extension definitions for TLS protocol (RFC 8446 Section 4.2).
 -/
 
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.BasicStructures
-
 namespace SWELib.Networking.Tls
+
+private instance : Repr ByteArray where
+  reprPrec b _ := repr b.toList
 
 /-- Extension type identifier (RFC 8446 Section 4.2). -/
 inductive ExtensionType where
@@ -106,7 +109,6 @@ structure PreSharedKeyExtension where
 
 /-- Early Data extension (RFC 8446 Section 4.2.10). -/
 structure EarlyDataExtension where
-  /-- Empty extension data -/
   deriving DecidableEq, Repr
 
 /-- Cookie extension (RFC 8446 Section 4.2.2). -/

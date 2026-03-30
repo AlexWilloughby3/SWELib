@@ -118,8 +118,8 @@ def primaryBackupReplication (state : MasterSlaveReplication σ)
   | _ => (state, [])
 
 /-- Quorum replication algorithm. -/
-def quorumReplication (replicas : List (Replica σ)) (strategy : ReplicationStrategy)
-    (msg : ReplicationMessage σ) : List (Replica σ) × List (ReplicationMessage σ) :=
+def quorumReplication (replicas : List (Replica σ)) (_strategy : ReplicationStrategy)
+    (_msg : ReplicationMessage σ) : List (Replica σ) × List (ReplicationMessage σ) :=
   (replicas, [])
 
 /-- Replication factor (how many copies). -/
@@ -135,12 +135,12 @@ structure ReplicationFactor where
   deriving DecidableEq, Repr
 
 /-- Theorem: Quorum replication ensures consistency. -/
-theorem quorum_consistency (replicas : List (Replica σ)) (strategy : ReplicationStrategy)
-    (h_factor : ReplicationFactor) : True := by trivial
+theorem quorum_consistency (_replicas : List (Replica σ)) (_strategy : ReplicationStrategy)
+    (_h_factor : ReplicationFactor) : True := by trivial
   -- TODO: Prove quorum consistency
 
 /-- Theorem: Master-slave provides sequential consistency. -/
-theorem masterSlave_sequential (state : MasterSlaveReplication σ) : True := by trivial
+theorem masterSlave_sequential (_state : MasterSlaveReplication σ) : True := by trivial
   -- TODO: Prove sequential consistency
 
 /-- Replication for fault tolerance. -/

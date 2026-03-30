@@ -275,8 +275,7 @@ theorem three_way_handshake_client (tcb : TCB) (synack : TcpSegment)
     (h_acceptable : acceptableAck tcb synack.ackNum = true) :
     (tcpTransition TcpState.synSent (TcpEvent.segmentArrives synack) tcb).1
       = TcpState.established := by
-  -- Needs: unfolding tcpTransition, using h_syn, h_ack, h_acceptable
-  sorry
+  simp [tcpTransition, h_syn, h_ack, h_acceptable]
 
 /-- Three-way handshake server side: SYN_RECEIVED + ACK -> ESTABLISHED
     (RFC 9293 Section 3.5, Figure 6). -/
@@ -286,8 +285,7 @@ theorem three_way_handshake_server (tcb : TCB) (ack_seg : TcpSegment)
     (h_acceptable : acceptableAck tcb ack_seg.ackNum = true) :
     (tcpTransition TcpState.synReceived (TcpEvent.segmentArrives ack_seg) tcb).1
       = TcpState.established := by
-  -- Needs: unfolding tcpTransition, using h_ack, h_no_syn, h_no_rst, h_acceptable
-  sorry
+  simp [tcpTransition, h_ack, h_no_syn, h_no_rst, h_acceptable]
 
 /-- Simultaneous open: SYN_SENT + bare SYN -> SYN_RECEIVED
     (RFC 9293 Section 3.5). -/
@@ -295,8 +293,7 @@ theorem simultaneous_open_step (tcb : TCB) (syn : TcpSegment)
     (h_syn : syn.flags.syn = true) (h_no_ack : syn.flags.ack = false) :
     (tcpTransition TcpState.synSent (TcpEvent.segmentArrives syn) tcb).1
       = TcpState.synReceived := by
-  -- Needs: unfolding tcpTransition, using h_syn, h_no_ack
-  sorry
+  simp [tcpTransition, h_syn, h_no_ack]
 
 /-- CLOSED + PassiveOpen -> LISTEN (RFC 9293 Section 3.9.1). -/
 theorem passive_open_transitions (tcb : TCB) (p : Port) :

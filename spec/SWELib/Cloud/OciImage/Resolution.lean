@@ -59,12 +59,16 @@ def selectBestManifest (idx : ImageIndex) (p : Platform) : Option Descriptor :=
 /-- STRUCTURAL: Exact match requires os and architecture equality. -/
 theorem matchPlatform_exact_requires_os_arch (p1 p2 : Platform) :
     matchPlatform p1 p2 = .exact →
-    p1.architecture = p2.architecture && p1.os = p2.os = true := by
+    (p1.architecture = p2.architecture && p1.os = p2.os) = true := by
   intro h
-  simp [matchPlatform] at h
-  split at h <;> try contradiction
-  split at h <;> try contradiction
-  simp
+  unfold matchPlatform at h
+  split at h
+  · simp at h
+  · split at h
+    · rename_i hNoMismatch hExact
+      simp at hNoMismatch
+      simp [hNoMismatch.1, hNoMismatch.2]
+    · simp at h
 
 /-- ALGEBRAIC: Platform matching is reflexive for exact. -/
 theorem matchPlatform_reflexive (p : Platform) :
@@ -75,11 +79,12 @@ theorem matchPlatform_reflexive (p : Platform) :
 theorem selectBestManifest_in_list (idx : ImageIndex) (p : Platform) (d : Descriptor) :
     selectBestManifest idx p = some d → d ∈ idx.manifests := by
   intro h
-  simp [selectBestManifest] at h
+  unfold selectBestManifest at h
   split at h
-  · rename_i h_find
-    exact List.find?_some h_find
-  · rename_i h_none h_find
-    exact List.find?_some h_find
+  · rename_i d' hFind
+    injection h with hd
+    subst hd
+    exact List.mem_of_find?_eq_some hFind
+  · exact List.mem_of_find?_eq_some h
 
 end SWELib.Cloud.OciImage

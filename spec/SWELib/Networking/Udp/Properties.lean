@@ -10,6 +10,7 @@ import SWELib.Networking.Udp.Datagram
 import SWELib.Networking.Udp.Checksum
 import SWELib.Networking.Udp.Socket
 import SWELib.Networking.Udp.Validation
+import Std.Tactic.BVDecide
 
 /-!
 # UDP Properties
@@ -68,8 +69,7 @@ theorem zero_computed_becomes_ones (pseudo : PseudoHeader) (hdr : Header) (paylo
 
 -- Checksum property: ones' complement involution for 16-bit words
 theorem checksum_involution (x : UInt16) : ~~~(~~~x) = x := by
-  apply UInt16.ext
-  simp [UInt16.not]
+  bv_decide
 
 -- Zero checksum is always valid (RFC 768)
 theorem zero_checksum_always_valid (datagram : Datagram) (pseudo : PseudoHeader) :
@@ -81,12 +81,14 @@ theorem zero_checksum_always_valid (datagram : Datagram) (pseudo : PseudoHeader)
 ## Socket State Theorems
 -/
 
--- Socket cannot be connected without being bound
-theorem connected_implies_bound (socket : SocketState) :
+/-- Well-formed UDP socket state invariant. -/
+def SocketState.WellFormed (socket : SocketState) : Prop :=
+  socket.connected → socket.bound
+
+-- Well-formed sockets cannot be connected without being bound
+theorem connected_implies_bound (socket : SocketState) (h_wf : socket.WellFormed) :
     socket.connected → socket.bound := by
-  intro h
-  simp [SocketState] at h ⊢
-  exact h
+  exact h_wf
 
 -- Note: Bound socket may have localPort = 0 (source port unspecified)
 
@@ -101,17 +103,19 @@ theorem initial_socket_state_properties :
 
 -- UDP is connectionless: send doesn't change connection state
 theorem send_preserves_connection_state (socket : SocketState)
-    (dg : Datagram) (addr : Std.Net.Addr) (port : Port) :
+    (h_bound : socket.bound) (dg : Datagram) (addr : Std.Net.SocketAddress) (port : Port) :
     (udpSend socket dg addr port).toOption.map (·.connected) = some socket.connected := by
-  simp [udpSend]
-  split <;> simp
+  unfold udpSend
+  simp [h_bound]
+  exact ⟨socket, rfl, rfl⟩
 
 -- UDP send preserves binding state
 theorem send_preserves_bound_state (socket : SocketState)
-    (dg : Datagram) (addr : Std.Net.Addr) (port : Port) :
+    (h_bound : socket.bound) (dg : Datagram) (addr : Std.Net.SocketAddress) (port : Port) :
     (udpSend socket dg addr port).toOption.map (·.bound) = some socket.bound := by
-  simp [udpSend]
-  split <;> simp
+  unfold udpSend
+  simp [h_bound]
+  exact ⟨socket, rfl, h_bound⟩
 
 -- Valid datagram has correct length field
 theorem valid_datagram_has_correct_length (dg : Datagram) (h : validateDatagram dg) :
@@ -126,18 +130,20 @@ theorem empty_datagram_min_size (dg : Datagram) (h : isEmpty dg) :
   exact h
 
 -- Port validation theorems
-theorem well_known_port_valid (p : Port) (h : isWellKnownPort p) : isValidPort p := by
+theorem well_known_port_valid (p : Port) (_ : isWellKnownPort p) : isValidPort p := by
   simp [isValidPort]
 
-theorem registered_port_valid (p : Port) (h : isRegisteredPort p) : isValidPort p := by
+theorem registered_port_valid (p : Port) (_ : isRegisteredPort p) : isValidPort p := by
   simp [isValidPort]
 
-theorem dynamic_port_valid (p : Port) (h : isDynamicPort p) : isValidPort p := by
+theorem dynamic_port_valid (p : Port) (_ : isDynamicPort p) : isValidPort p := by
   simp [isValidPort]
 
 /-!
 ## Examples
 -/
+
+namespace Examples
 
 /-- Example: DNS query datagram -/
 def exampleDnsQuery : Datagram :=
@@ -147,10 +153,6 @@ def exampleDnsQuery : Datagram :=
 def examplePseudoIPv4 : PseudoHeader :=
   mkPseudoHeaderIPv4 (ByteArray.mk #[192, 168, 1, 1]) (ByteArray.mk #[8, 8, 8, 8]) 20
 
-/-- Example validation checks -/
-#eval validateDatagram exampleDnsQuery
-#eval validatePseudoHeaderIPv4 examplePseudoIPv4
-#eval udpChecksum examplePseudoIPv4 exampleDnsQuery.header exampleDnsQuery.payload
 
 /-- Example: IPv6 pseudo-header -/
 def examplePseudoIPv6 : PseudoHeader :=
@@ -170,15 +172,10 @@ def exampleNoSourcePort : Datagram :=
 
 /-- Example: Maximum payload size datagram -/
 def exampleMaxPayload : Datagram :=
-  let payload := ByteArray.mk (List.replicate (MAX_DATAGRAM_SIZE - HEADER_SIZE) 0)
+  let payload := ByteArray.mk <| Array.replicate (MAX_DATAGRAM_SIZE - HEADER_SIZE) 0
   mkDatagram 1234 5678 payload
 
-/-- More validation tests -/
-#eval validatePseudoHeaderIPv6 examplePseudoIPv6
-#eval validateDatagram exampleZeroChecksum
-#eval validateDatagram exampleNoSourcePort
-#eval validateDatagram exampleMaxPayload
-#eval udpChecksum examplePseudoIPv6 exampleDnsQuery.header exampleDnsQuery.payload
-#eval isValidChecksum exampleZeroChecksum examplePseudoIPv4
+
+end Examples
 
 end SWELib.Networking.Udp

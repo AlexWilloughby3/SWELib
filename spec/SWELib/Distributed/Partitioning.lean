@@ -129,10 +129,10 @@ structure DataLocality where
   deriving DecidableEq, Repr
 
 /-- Theorem: Partitioning enables horizontal scaling. -/
-theorem partitioning_scalability (scheme : PartitioningScheme α) : True := by trivial
+theorem partitioning_scalability (_scheme : PartitioningScheme α) : True := by trivial
 
 /-- Theorem: Consistent hashing minimizes data movement. -/
-theorem consistent_hashing_minimal_movement (ring1 ring2 : ConsistentHashing) : True := by trivial
+theorem consistent_hashing_minimal_movement (_ring1 _ring2 : ConsistentHashing) : True := by trivial
 
 /-- Partitioning tradeoffs. -/
 structure PartitioningTradeoffs where
@@ -192,9 +192,9 @@ structure IndexingStrategy where
   deriving DecidableEq, Repr
 
 /-- Theorem: Hash partitioning distributes data evenly (with good hash). -/
-theorem hash_partitioning_even_distribution (scheme : PartitioningScheme α) : True := by trivial
+theorem hash_partitioning_even_distribution (_scheme : PartitioningScheme α) : True := by trivial
 
 /-- Theorem: Range partitioning preserves locality. -/
-theorem range_partitioning_locality (scheme : RangePartitioning α) : True := by trivial
+theorem range_partitioning_locality (_scheme : RangePartitioning α) : True := by trivial
 
 end SWELib.Distributed

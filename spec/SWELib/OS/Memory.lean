@@ -1,3 +1,8 @@
+import SWELib.OS.Memory.Types
+import SWELib.OS.Memory.Region
+import SWELib.OS.Memory.Operations
+import SWELib.OS.Memory.State
+
 /-!
 # Memory
 
@@ -17,55 +22,11 @@ References:
 - /proc/[pid]/maps: https://man7.org/linux/man-pages/man5/proc.5.html
 -/
 
-import SWELib.OS.Memory.Types
-import SWELib.OS.Memory.Region
-import SWELib.OS.Memory.Operations
-import SWELib.OS.Memory.State
-
 namespace SWELib.OS
 
-/-! ## Re-exports from submodules -/
+/-! ## Names from submodules -/
 
-export Memory.Types (
-  VirtualAddress,
-  PageSize,
-  MemoryProtection,
-  MappingFlags,
-  OOMScore,
-  MemoryErrno,
-  anonymousFd
-)
-
-export Memory.Region (
-  MemoryRegion,
-  SpecialPathname,
-  parseMapsLine,
-  parseMapsContent
-)
-
-export Memory.Operations (
-  mmap,
-  mmapAnonymous,
-  munmap,
-  mprotect,
-  brk,
-  sbrk,
-  readProcMaps,
-  readOOMScore
-)
-
-export Memory.State (
-  regionsOverlap,
-  regionOverlapsAny,
-  regionsDisjoint,
-  AddressSpace,
-  rangeAvailable,
-  addRegion,
-  removeRange,
-  totalMemoryUsage,
-  oomKillerTriggers,
-  oomKillerTriggersSimple
-)
+open SWELib.OS.Memory
 
 /-! ## High-level Documentation -/
 
@@ -78,7 +39,7 @@ theorem all_regions_page_aligned (pid : Nat) :
 
 /-- Integration with cgroup memory limits (placeholder).
     In a real system, memory allocations would be checked against cgroup limits. -/
-def checkCgroupMemoryLimit (requested : Nat) : Except Errno Unit :=
-  .error .ENOSYS  -- Placeholder for cgroup integration
+def checkCgroupMemoryLimit (_requested : Nat) : Except Errno Unit :=
+  .error .ENODEV  -- Placeholder for cgroup integration
 
 end SWELib.OS

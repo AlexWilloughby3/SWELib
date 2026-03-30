@@ -106,7 +106,7 @@ def projectionIndices (items : List (SelectItem Const)) : List Nat :=
 
 /-- Translate a SELECT item to a relational algebra column expression.
     Placeholder: returns the column index for the item. -/
-def translateSelectItem (idx : Nat) : SelectItem Const -> RelAlg Const :=
+def translateSelectItem (_idx : Nat) : SelectItem Const -> RelAlg Const :=
   fun _ => .empty  -- placeholder
 
 end SWELib.Db.Sql

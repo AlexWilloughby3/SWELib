@@ -123,6 +123,18 @@ theorem initValidationState_maxPathLength
                     info.certPath = some cp →
                     cp.pathLenConstraint = none) :
     (initValidationState inputs).maxPathLength = inputs.certPath.length := by
-  sorry -- TODO: proof requires unfolding initValidationState through noncomputable lets; needs Nat.min_self
+  unfold initValidationState
+  cases hchoice : inputs.trustAnchor.choice with
+  | certificate cert =>
+      simp
+  | tbsCert tbs =>
+      simp
+  | taInfo info =>
+      cases hcp : info.certPath with
+      | none =>
+          simp [hcp]
+      | some cp =>
+          have hnone : cp.pathLenConstraint = none := h info cp hchoice hcp
+          simp [hcp, hnone]
 
 end SWELib.Security.Pki

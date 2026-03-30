@@ -85,12 +85,194 @@ theorem bpfStep_misc_tax (s : BpfMachineState) (d : SeccompData) :
 
 /-! ## T-11: BPF step strictly advances pc -/
 
+private theorem pc_lt_of_eq_step {pc pc' : Nat} (h : pc + 1 = pc') : pc < pc' := by
+  omega
+
+private theorem pc_lt_of_eq_jump {pc pc' n : Nat} (h : pc + 1 + n = pc') : pc < pc' := by
+  omega
+
 /-- Every successful bpfStep strictly advances the program counter.
     This is essential for the termination argument. -/
 theorem bpfStep_pc_nondecreasing (s : BpfMachineState) (d : SeccompData)
     (insn : SockFilter) (s' : BpfMachineState)
     (h : bpfStep s insn d = some s') : s.pc < s'.pc := by
-  sorry
+  have hpc : Option.map BpfMachineState.pc (bpfStep s insn d) = some s'.pc := by
+    simp [h]
+  cases h_op : insn.decodeOpcode with
+  | none =>
+    unfold bpfStep at hpc
+    rw [h_op] at hpc
+    contradiction
+  | some op =>
+    cases op with
+    | load cls sz mode =>
+      cases cls <;> cases sz <;> cases mode
+      all_goals
+        (unfold bpfStep at hpc
+         rw [h_op] at hpc
+         dsimp at hpc)
+      all_goals (try contradiction)
+      case LD.W.ABS =>
+        cases h_read : d.readWord insn.k with
+        | none =>
+          simp [h_read] at hpc
+        | some _ =>
+          simp [h_read] at hpc
+          exact pc_lt_of_eq_step hpc
+      case LD.W.IND =>
+        cases h_read : d.readWord (s.X + insn.k) with
+        | none =>
+          simp [h_read] at hpc
+        | some _ =>
+          simp [h_read] at hpc
+          exact pc_lt_of_eq_step hpc
+      case LD.W.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case LD.W.IMM =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case LD.W.LEN =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case LDX.W.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case LDX.W.IMM =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case LDX.W.LEN =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case LDX.B.MSH =>
+        cases h_read : d.readWord (insn.k &&& 0xfffffffc) with
+        | none =>
+          simp [h_read] at hpc
+        | some _ =>
+          simp [h_read] at hpc
+          exact pc_lt_of_eq_step hpc
+      case ST.W.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case ST.H.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case ST.B.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case STX.W.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case STX.H.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      case STX.B.MEM =>
+        split at hpc
+        · simp at hpc
+          exact pc_lt_of_eq_step hpc
+        · simp at hpc
+      all_goals contradiction
+    | alu aluOp src =>
+      cases aluOp
+      all_goals
+        (unfold bpfStep at hpc
+         rw [h_op] at hpc
+         dsimp at hpc)
+      case ADD =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case SUB =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case MUL =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case DIV =>
+        cases h_src : src
+        case K =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+        case X =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+        case A =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+      case OR =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case AND =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case LSH =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case RSH =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case NEG =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+      case MOD =>
+        cases h_src : src
+        case K =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+        case X =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+        case A =>
+          simp [h_src] at hpc
+          rcases hpc with ⟨a, ⟨_, ha⟩, hpc'⟩
+          subst a
+          exact pc_lt_of_eq_step (by simpa using hpc')
+      case XOR =>
+        simp at hpc
+        exact pc_lt_of_eq_step hpc
+    | jmp jmpOp src =>
+      cases jmpOp <;> cases src
+      all_goals
+        (unfold bpfStep at hpc
+         rw [h_op] at hpc
+         dsimp at hpc
+         simp at hpc
+         exact pc_lt_of_eq_jump hpc)
+    | ret _ =>
+      unfold bpfStep at hpc
+      rw [h_op] at hpc
+      contradiction
+    | misc miscOp =>
+      cases miscOp
+      all_goals
+        (unfold bpfStep at hpc
+         rw [h_op] at hpc
+         dsimp at hpc
+         simp at hpc
+         exact pc_lt_of_eq_step hpc)
 
 /-! ## T-12: installFilter extends cumulative count -/
 

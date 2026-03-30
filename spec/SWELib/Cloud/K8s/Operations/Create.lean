@@ -20,31 +20,30 @@ open SWELib.Cloud.K8s.Workloads
 
 /-- Parameters for CREATE operation -/
 structure CreateParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   pod : Pod
-  deriving DecidableEq
 
 /-- CREATE operation for Pods (axiomatized) -/
 axiom podCreate : CreateParams → IO (OperationResult Pod)
 
 -- REQUIRES_HUMAN: CREATE assigns UID
 axiom create_assigns_uid : ∀ (params : CreateParams) (pod : Pod),
-  podCreate params = IO.pure (OperationResult.ok pod) →
+  podCreate params = pure (OperationResult.ok pod) →
   pod.metadata.uid.isSome
 
 -- REQUIRES_HUMAN: CREATE assigns resourceVersion
 axiom create_assigns_resourceVersion : ∀ (params : CreateParams) (pod : Pod),
-  podCreate params = IO.pure (OperationResult.ok pod) →
+  podCreate params = pure (OperationResult.ok pod) →
   pod.metadata.resourceVersion.isSome
 
 -- REQUIRES_HUMAN: CREATE sets generation to zero
 axiom create_sets_generation_zero : ∀ (params : CreateParams) (pod : Pod),
-  podCreate params = IO.pure (OperationResult.ok pod) →
-  pod.metadata.generation = 0
+  podCreate params = pure (OperationResult.ok pod) →
+  pod.metadata.generation = some 0
 
 -- REQUIRES_HUMAN: CREATE with existing name fails
 axiom create_idempotent_name : ∀ (params : CreateParams),
-  (∃ err, podCreate params = IO.pure (OperationResult.error err)) →
+  (∃ err, podCreate params = pure (OperationResult.error err)) →
   True  -- Should return 409 Conflict if name exists
 
 end SWELib.Cloud.K8s.Operations

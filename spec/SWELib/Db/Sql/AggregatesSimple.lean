@@ -1,14 +1,15 @@
+import SWELib.Db.Sql.ValueExtended
+
 /-!
 # SQL Aggregate Function Semantics (Simplified)
 
 Simplified implementation of SQL aggregate functions for compilation.
 -/
 
-import SWELib.Db.Sql.ValueExtended
-
 namespace SWELib.Db.Sql
 
-variable {Const : Type} [DecidableEq Const] [Ord Const] [Add Const] [Zero Const]
+variable {Const : Type} [DecidableEq Const] [Ord Const]
+  [Add Const] [Div Const] [Zero Const] [Min Const] [Max Const] [NatCast Const]
 
 /-- Compute an aggregate function over a list of SQL values (simplified).
     Returns NULL for empty input. -/
@@ -31,12 +32,14 @@ def computeAggSimple : AggFunc → List (SqlValue Const) → SqlValue Const
   | .min, vals =>
     -- MIN ignores NULLs
     let nonNulls := vals.filterMap id
-    if nonNulls.isEmpty then none else
-      some (nonNulls.foldl (fun acc x => min acc x) nonNulls.head!)
+    match nonNulls with
+    | [] => none
+    | x :: xs => some (xs.foldl min x)
   | .max, vals =>
     -- MAX ignores NULLs
     let nonNulls := vals.filterMap id
-    if nonNulls.isEmpty then none else
-      some (nonNulls.foldl (fun acc x => max acc x) nonNulls.head!)
+    match nonNulls with
+    | [] => none
+    | x :: xs => some (xs.foldl max x)
 
 end SWELib.Db.Sql

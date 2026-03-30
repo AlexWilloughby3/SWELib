@@ -8,22 +8,27 @@ import SWELib.Cloud.K8s.Primitives.DnsSubdomain
 
 namespace SWELib.Cloud.K8s.Primitives
 
+/-- Validation for label name. -/
+def isValidLabelName (s : String) : Bool :=
+  s.length > 0 && s.length ≤ 63 &&
+  s.all (fun c => c.isAlphanum || c = '-' || c = '_' || c = '.') &&
+  (s.front? != none) && s.front?.get!.isAlphanum &&
+  (s.back? != none) && s.back?.get!.isAlphanum
+
 /-- The name part of a label key -/
 structure LabelName where
   val : String
-  h_valid : val.length > 0 ∧ val.length ≤ 63 ∧
-            val.all (fun c => c.isAlphanum || c = '-' || c = '_' || c = '.') ∧
-            val.front.isAlphanum ∧ val.back.isAlphanum
+  h_valid : isValidLabelName val = true
   deriving DecidableEq
 
 /-- A Kubernetes label key with optional DNS subdomain prefix -/
 structure LabelKey where
-  prefix : Option DnsSubdomain
+  prefix? : Option DnsSubdomain
   name : LabelName
   deriving DecidableEq
 
 instance : ToString LabelKey where
-  toString k := match k.prefix with
+  toString k := match k.prefix? with
     | none => k.name.val
     | some p => p.val ++ "/" ++ k.name.val
 
@@ -31,19 +36,13 @@ instance : ToString LabelKey where
 def parseLabelKey (s : String) : Option LabelKey :=
   match s.splitOn "/" with
   | [name] =>
-    -- No prefix case
-    if h : name.length > 0 ∧ name.length ≤ 63 ∧
-           name.all (fun c => c.isAlphanum || c = '-' || c = '_' || c = '.') ∧
-           name.front.isAlphanum ∧ name.back.isAlphanum then
+    if h : isValidLabelName name = true then
       some ⟨none, ⟨name, h⟩⟩
     else
       none
-  | [prefix, name] =>
-    -- Prefix case
-    if h : name.length > 0 ∧ name.length ≤ 63 ∧
-           name.all (fun c => c.isAlphanum || c = '-' || c = '_' || c = '.') ∧
-           name.front.isAlphanum ∧ name.back.isAlphanum then
-      DnsSubdomain.mk? prefix |>.map fun p =>
+  | [prefixStr, name] =>
+    if h : isValidLabelName name = true then
+      DnsSubdomain.mk? prefixStr |>.map fun p =>
         ⟨some p, ⟨name, h⟩⟩
     else
       none

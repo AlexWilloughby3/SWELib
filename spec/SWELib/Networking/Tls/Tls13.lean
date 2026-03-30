@@ -1,10 +1,10 @@
+import SWELib.Networking.Tls.Operations
+
 /-!
 # TLS 1.3 Specification
 
 TLS 1.3 specific structures and operations (RFC 8446).
 -/
-
-import SWELib.Networking.Tls.Operations
 
 namespace SWELib.Networking.Tls
 
@@ -38,6 +38,14 @@ def CipherSuiteTls13.fromUInt16 : UInt16 → Option CipherSuiteTls13
   | 0x1304 => some .tlsAes128CcmSha256
   | 0x1305 => some .tlsAes128Ccm8Sha256
   | _ => none
+
+/-- Convert a TLS 1.3-specific cipher suite into the generic TLS cipher-suite type. -/
+def CipherSuiteTls13.toCipherSuite : CipherSuiteTls13 → CipherSuite
+  | .tlsAes128GcmSha256 => .tlsAes128GcmSha256
+  | .tlsAes256GcmSha384 => .tlsAes256GcmSha384
+  | .tlsChacha20Poly1305Sha256 => .tlsChacha20Poly1305Sha256
+  | .tlsAes128CcmSha256 => .tlsAes128CcmSha256
+  | .tlsAes128Ccm8Sha256 => .tlsAes128Ccm8Sha256
 
 /-- TLS 1.3 specific extensions (RFC 8446 Section 4.2). -/
 inductive ExtensionTypeTls13 where
@@ -125,18 +133,12 @@ def ClientHelloTls13.toClientHello (ch : ClientHelloTls13) : ClientHello :=
 
 /-- Convert TLS 1.3 Server Hello to generic Server Hello. -/
 def ServerHelloTls13.toServerHello (sh : ServerHelloTls13) : ServerHello :=
-  let cipherSuite :=
-    match sh.cipherSuite with
-    | .tlsAes128GcmSha256 => CipherSuite.tlsAes128GcmSha256
-    | .tlsAes256GcmSha384 => CipherSuite.tlsAes256GcmSha384
-    | .tlsChacha20Poly1305Sha256 => CipherSuite.tlsChacha20Poly1305Sha256
-    | .tlsAes128CcmSha256 => CipherSuite.tlsAes128CcmSha256
-    | .tlsAes128Ccm8Sha256 => CipherSuite.tlsAes128Ccm8Sha256
+  let cipherSuite := sh.cipherSuite.toCipherSuite
   ⟨sh.legacyVersion, sh.random, sh.legacySessionId, cipherSuite,
    sh.legacyCompressionMethod, sh.extensions⟩
 
 /-- TLS 1.3 handshake initiation. -/
-def handshakeInitiateTls13 (supportedVersions : List ProtocolVersion)
+def handshakeInitiateTls13 (_supportedVersions : List ProtocolVersion)
     (cipherSuites : List CipherSuiteTls13)
     (extensions : List Extension) : ClientHelloTls13 :=
   let random : Random := ⟨ByteArray.empty⟩
@@ -156,20 +158,20 @@ def handshakeRespondTls13 (clientHello : ClientHelloTls13)
   ⟨legacyVersion, random, sessionId, selectedCipherSuite, compressionMethod, extensions⟩
 
 /-- TLS 1.3 HKDF-Extract for key derivation (RFC 8446 Section 7.1). -/
-def hkdfExtractTls13KeyDerivation (salt : ByteArray) (ikm : ByteArray) : ByteArray :=
+noncomputable def hkdfExtractTls13KeyDerivation (salt : ByteArray) (ikm : ByteArray) : ByteArray :=
   hkdfExtractTls13 salt ikm
 
 /-- TLS 1.3 HKDF-Expand for key derivation (RFC 8446 Section 7.1). -/
-def hkdfExpandTls13KeyDerivation (prk : ByteArray) (info : ByteArray) (length : Nat) : ByteArray :=
+noncomputable def hkdfExpandTls13KeyDerivation (prk : ByteArray) (info : ByteArray) (length : Nat) : ByteArray :=
   hkdfExpandTls13 prk info length
 
 /-- TLS 1.3 AEAD encryption (RFC 8446 Section 5.2). -/
-def aeadEncryptTls13Record (key : ByteArray) (nonce : ByteArray) (plaintext : ByteArray)
+noncomputable def aeadEncryptTls13Record (key : ByteArray) (nonce : ByteArray) (plaintext : ByteArray)
     (additionalData : ByteArray) : ByteArray :=
   aeadEncryptTls13 key nonce plaintext additionalData
 
 /-- TLS 1.3 AEAD decryption (RFC 8446 Section 5.2). -/
-def aeadDecryptTls13Record (key : ByteArray) (nonce : ByteArray) (ciphertext : ByteArray)
+noncomputable def aeadDecryptTls13Record (key : ByteArray) (nonce : ByteArray) (ciphertext : ByteArray)
     (additionalData : ByteArray) : Option ByteArray :=
   aeadDecryptTls13 key nonce ciphertext additionalData
 
@@ -185,7 +187,7 @@ def ClientHelloTls13.validate : ClientHelloTls13 → Bool
 
 /-- Validate TLS 1.3 Server Hello. -/
 def ServerHelloTls13.validate : ServerHelloTls13 → Bool
-  | ⟨legacyVersion, random, legacySessionId, cipherSuite, legacyCompressionMethod, extensions⟩ =>
+  | ⟨legacyVersion, random, legacySessionId, _, legacyCompressionMethod, _⟩ =>
     legacyVersion = .tls12 &&  -- Must be 0x0303
     random.validate &&
     legacySessionId.validate &&
@@ -243,19 +245,32 @@ instance : ToString ExtensionTypeTls13 where
 
 /-- Theorem: TLS 1.3 requires supported_versions extension. -/
 theorem tls13_requires_supported_versions_ext (ch : ClientHelloTls13) :
-    ch.validate → ch.extensions.any (λ ext => ext.getType = .supportedVersions) := by
-  sorry
+    ch.validate = true →
+    ch.extensions.any (λ ext => ext.getType = .supportedVersions) = true := by
+  intro hValidate
+  cases ch with
+  | mk legacyVersion random legacySessionId cipherSuites legacyCompressionMethods extensions =>
+      simp [ClientHelloTls13.validate, hasRequiredExtensionsTls13, Bool.and_eq_true] at hValidate
+      simpa using hValidate.2.1
 
 /-- Theorem: TLS 1.3 Server Hello must select TLS 1.3 cipher suite. -/
 theorem tls13_server_hello_cipher_suite (sh : ServerHelloTls13) :
-    sh.validate → sh.cipherSuite.isTls13 := by
-  sorry
+    sh.validate = true →
+    sh.cipherSuite.toCipherSuite.isTls13 = true := by
+  intro _
+  cases sh.cipherSuite <;> rfl
 
 /-- Theorem: TLS 1.3 handshake completes with Finished messages. -/
 theorem tls13_handshake_completion (state : FullTlsState) :
-    state.connectionState.securityParameters.cipherSuite.isTls13 →
+    state.validate = true →
+    state.connectionState.securityParameters.cipherSuite.isTls13 = true →
     state.protocolState = .connected →
-    state.connectionState.handshakeState.isComplete := by
-  sorry
+    state.connectionState.handshakeState.isComplete = true := by
+  intro hValid _ hConnected
+  cases state with
+  | mk protocolState connectionState =>
+      cases hConnected
+      simp [FullTlsState.validate, Bool.and_eq_true] at hValid
+      exact hValid.2
 
 end SWELib.Networking.Tls

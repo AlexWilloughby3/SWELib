@@ -1,13 +1,16 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.Extensions
+
 /-!
 # TLS Handshake Messages
 
 Handshake message structures for TLS protocol (RFC 8446 Section 4).
 -/
 
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.Extensions
-
 namespace SWELib.Networking.Tls
+
+private instance : Repr ByteArray where
+  reprPrec b _ := repr b.toList
 
 /-- Key share entry for key exchange (RFC 8446 Section 4.2.8). -/
 structure KeyShareEntry where
@@ -103,7 +106,6 @@ structure NewSessionTicket where
 
 /-- End of Early Data message (RFC 8446 Section 4.2.10). -/
 structure EndOfEarlyData where
-  /-- Empty message -/
   deriving DecidableEq, Repr
 
 /-- Key Update message (RFC 8446 Section 4.6.3). -/
@@ -163,7 +165,7 @@ instance : ToString KeyUpdateRequest where
 
 /-- Validate that a KeyShareEntry has valid key exchange data. -/
 def KeyShareEntry.validate : KeyShareEntry → Bool
-  | ⟨group, keyExchange⟩ => keyExchange.size > 0
+  | ⟨_, keyExchange⟩ => keyExchange.size > 0
 
 /-- Validate that a Certificate has non-empty data. -/
 def Certificate.validate : Certificate → Bool
@@ -183,7 +185,7 @@ def Finished.validate : Finished → Bool
 
 /-- Validate that a ClientHello has required fields (RFC 8446 Section 4.1.2). -/
 def ClientHello.validate : ClientHello → Bool
-  | ⟨legacyVersion, random, legacySessionId, cipherSuites, legacyCompressionMethods, extensions⟩ =>
+  | ⟨_, random, legacySessionId, cipherSuites, legacyCompressionMethods, _⟩ =>
     random.validate &&
     legacySessionId.validate &&
     cipherSuites.length > 0 &&
@@ -191,13 +193,13 @@ def ClientHello.validate : ClientHello → Bool
 
 /-- Validate that a ServerHello has required fields (RFC 8446 Section 4.1.3). -/
 def ServerHello.validate : ServerHello → Bool
-  | ⟨legacyVersion, random, legacySessionId, cipherSuite, legacyCompressionMethod, extensions⟩ =>
+  | ⟨_, random, legacySessionId, _, _, _⟩ =>
     random.validate &&
     legacySessionId.validate
 
 /-- Validate that a NewSessionTicket has valid fields (RFC 8446 Section 4.6.1). -/
 def NewSessionTicket.validate : NewSessionTicket → Bool
-  | ⟨ticketLifetime, ticketAgeAdd, ticketNonce, ticket, extensions⟩ =>
+  | ⟨_, _, _, ticket, _⟩ =>
     ticket.size > 0
 
 /-- Validate a handshake message based on its type. -/

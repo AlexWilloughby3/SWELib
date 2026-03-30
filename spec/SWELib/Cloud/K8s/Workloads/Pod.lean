@@ -23,7 +23,6 @@ structure Pod where
   metadata : ObjectMeta
   spec : PodSpec
   status : PodStatus := {}
-  deriving DecidableEq
 
 /-- Check if a pod is ready -/
 def Pod.isReady (pod : Pod) : Bool :=

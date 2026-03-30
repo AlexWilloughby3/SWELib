@@ -16,6 +16,17 @@ References:
 
 namespace SWELib.OS
 
+private theorem take_eq_self_of_length_le {α : Type} (xs : List α) (n : Nat)
+    (h : xs.length ≤ n) : xs.take n = xs := by
+  induction xs generalizing n with
+  | nil => simp
+  | cons x xs ih =>
+      cases n with
+      | zero => cases h
+      | succ n =>
+          simp at h ⊢
+          exact ih n h
+
 /-! ## Types -/
 
 /-- Events of interest / readiness for an epoll fd. -/
@@ -223,25 +234,24 @@ theorem epollWait_after_del (s : EpollSystemState)
     let (s', _) := s.epollCtl epfd .DEL targetFd events
     ∀ results, s'.epollWait epfd maxEvents = .ok results →
     results.all (·.fd != targetFd) = true := by
-  simp only [EpollSystemState.epollCtl, h_inst, h_open, h_reg, Bool.not_true, ite_false]
+  simp [EpollSystemState.epollCtl, h_inst, h_open, h_reg]
   intro results h_wait
-  have h_ne0 : (maxEvents == 0) = false := by omega
-  simp only [EpollSystemState.epollWait, if_pos rfl, h_ne0, ite_false] at h_wait
-  injection h_wait with h_eq; subst h_eq
-  simp only [List.all_eq_true]
-  intro ev h_ev
-  -- ev came from take of filterMap over filtered interests
-  have h_ev_mem := List.take_subset _ _ h_ev
-  simp only [List.mem_filterMap] at h_ev_mem
-  obtain ⟨interest, h_i_mem, h_i_eq⟩ := h_ev_mem
-  simp only [List.mem_filter] at h_i_mem
-  have h_ne : interest.fd != targetFd = true := h_i_mem.2
-  -- the filterMap maps interest.fd to ev.fd
-  split_ifs at h_i_eq with h_any
-  · -- h_i_eq : some { fd := interest.fd, events := ... } = some ev
-    have h_ev_eq : ev.fd = interest.fd := by injection h_i_eq with h; exact (congrArg (·.fd) h).symm
-    simp [h_ev_eq, h_ne]
-  · exact absurd h_i_eq (by simp)
+  have h_ne0 : maxEvents ≠ 0 := Nat.ne_of_gt h_max
+  simp [EpollSystemState.epollWait, h_ne0] at h_wait
+  subst h_wait
+  intro x hx
+  have hx' := List.mem_of_mem_take hx
+  simp only [List.mem_filterMap] at hx'
+  rcases hx' with ⟨interest, h_interest, h_map⟩
+  have h_interest' : interest ∈ List.filter (fun x => x.fd != targetFd) inst.interests := h_interest
+  simp only [List.mem_filter] at h_interest'
+  have h_keep : interest.fd ≠ targetFd := by
+    simpa using h_interest'.2
+  by_cases h_ready : (isReady s.sockState interest).any = true
+  · simp [h_ready] at h_map
+    subst h_map
+    simpa using h_keep
+  · simp [h_ready] at h_map
 
 /-- EPOLLIN registered + recvBuf non-empty → fd appears in wait results. -/
 -- NOTE: epollWait_ready_when_data requires maxEvents ≥ inst.interests.length to avoid
@@ -259,32 +269,59 @@ theorem epollWait_ready_when_data (s : EpollSystemState)
     ∀ results, s.epollWait epfd maxEvents = .ok results →
     results.any (·.fd == targetFd) = true := by
   intro results h_wait
-  have h_ne0 : (maxEvents == 0) = false := by omega
-  simp only [EpollSystemState.epollWait, h_inst, h_ne0, ite_false] at h_wait
-  injection h_wait with h_eq; subst h_eq
-  -- The ready list has ≤ inst.interests.length ≤ maxEvents elements, so take is identity
-  have h_ready_le : (inst.interests.filterMap (fun interest =>
-      let evts := isReady s.sockState interest
-      if evts.any then some { fd := interest.fd, events := evts } else none)).length ≤ maxEvents :=
-    Nat.le_trans (List.length_filterMap_le _ _) h_max_large
-  rw [List.take_of_length_le h_ready_le]
-  -- Now find the interest for targetFd in the filterMap result
-  simp only [List.any_iff_exists, List.mem_filterMap]
-  simp only [List.any_iff_exists] at h_interest
-  obtain ⟨interest, h_i_mem, h_i_eq⟩ := h_interest
-  simp only [Bool.and_eq_true, beq_iff_eq] at h_i_eq
-  obtain ⟨h_fd_eq, h_epollin⟩ := h_i_eq
-  refine ⟨{ fd := targetFd, events := isReady s.sockState interest }, ?_, ?_⟩
-  · refine ⟨interest, h_i_mem, ?_⟩
-    simp only [isReady, h_sock, h_fd_eq]
-    -- entry.recvBuf ≠ [], so recvBuf.isEmpty = false
-    have h_nonempty : entry.recvBuf.isEmpty = false := List.isEmpty_iff_eq_nil.not.mpr h_data
-    simp [EpollEvents.any, h_epollin, h_nonempty]
-  · simp [beq_iff_eq]
+  have h_ne0 : maxEvents ≠ 0 := Nat.ne_of_gt h_max
+  simp [EpollSystemState.epollWait, h_inst, h_ne0] at h_wait
+  have h_mem : ∃ interest ∈ inst.interests, interest.fd = targetFd ∧ interest.events.epollin = true := by
+    simpa using h_interest
+  rcases h_mem with ⟨interest, h_interest_mem, h_fd, h_in⟩
+  have h_recv : entry.recvBuf.isEmpty = false := by
+    cases h_buf : entry.recvBuf with
+    | nil => contradiction
+    | cons _ _ => simp
+  have h_ready_any : (isReady s.sockState interest).any = true := by
+    simp [isReady, EpollEvents.any, h_sock, h_fd, h_in, h_recv]
+  have h_event_mem : { fd := interest.fd, events := isReady s.sockState interest : EpollEvent } ∈
+      List.filterMap
+        (fun interest =>
+          if (isReady s.sockState interest).any = true then
+            some { fd := interest.fd, events := isReady s.sockState interest : EpollEvent }
+          else none)
+        inst.interests := by
+    simp only [List.mem_filterMap]
+    refine ⟨interest, h_interest_mem, ?_⟩
+    simp [h_ready_any]
+  have h_len_ready :
+      (List.filterMap
+        (fun interest =>
+          if (isReady s.sockState interest).any = true then
+            some { fd := interest.fd, events := isReady s.sockState interest : EpollEvent }
+          else none)
+        inst.interests).length ≤ maxEvents := by
+    exact Nat.le_trans (List.length_filterMap_le _ _) h_max_large
+  have h_take :
+      List.take maxEvents
+        (List.filterMap
+          (fun interest =>
+            if (isReady s.sockState interest).any = true then
+              some { fd := interest.fd, events := isReady s.sockState interest : EpollEvent }
+            else none)
+          inst.interests) =
+      List.filterMap
+        (fun interest =>
+          if (isReady s.sockState interest).any = true then
+            some { fd := interest.fd, events := isReady s.sockState interest : EpollEvent }
+          else none)
+        inst.interests :=
+    take_eq_self_of_length_le _ _ h_len_ready
+  subst h_wait
+  rw [h_take]
+  rw [List.any_eq_true]
+  refine ⟨{ fd := interest.fd, events := isReady s.sockState interest }, h_event_mem, ?_⟩
+  simp [h_fd]
 
 /-- epoll_create produces an fd of kind `.epoll`. -/
 theorem epollCreate_is_epoll_kind (s : EpollSystemState) (newFd : Nat)
-    (h_free : s.sockState.fdTable newFd ≠ some (.open .file) ∧
+    (_h_free : s.sockState.fdTable newFd ≠ some (.open .file) ∧
               s.sockState.fdTable newFd ≠ some (.open .socket) ∧
               s.sockState.fdTable newFd ≠ some (.open .pipe) ∧
               s.sockState.fdTable newFd ≠ some (.open .epoll)) :

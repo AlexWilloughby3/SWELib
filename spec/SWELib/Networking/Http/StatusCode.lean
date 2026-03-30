@@ -180,9 +180,10 @@ theorem StatusCode.interim_no_body (s : StatusCode) :
 /-- All error status codes are final responses. -/
 theorem StatusCode.error_is_final (s : StatusCode) :
     s.isError = true → s.isFinal = true := by
-  simp only [isError, isFinal, Bool.and_eq_true, decide_eq_true_eq]
-  intro ⟨h, _⟩
-  exact decide_eq_true (by omega)
+  intro h
+  simp only [StatusCode.isError, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [StatusCode.isFinal, decide_eq_true_eq]
+  omega
 
 /-- 2xx responses are always final (RFC 9110 Section 15.1). -/
 theorem StatusCode.successful_is_final (s : StatusCode) :
@@ -202,18 +203,18 @@ theorem StatusCode.ok_is_successful :
 theorem StatusCode.clientError_is_error (s : StatusCode) :
     s.statusClass = some .clientError → s.isError = true := by
   unfold statusClass isError
-  simp only [Bool.and_eq_true, decide_eq_true_eq]
   intro h
   split at h
-  · exact absurd h (by decide)
+  · simp at h
   · split at h
-    · exact absurd h (by decide)
+    · simp at h
     · split at h
-      · exact absurd h (by decide)
+      · simp at h
       · split at h
         · -- 400 ≤ s.code < 500
+          simp [Bool.and_eq_true, decide_eq_true_eq]
           constructor <;> omega
-        · exact absurd h (by decide)
+        · split at h <;> simp at h
 
 /-- 5xx server errors are also errors. -/
 theorem StatusCode.serverError_is_error (s : StatusCode) :

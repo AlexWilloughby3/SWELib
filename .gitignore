@@ -27,3 +27,6 @@ __pycache__/
 
 # Documentation build
 docs/_build/
+
+# Claude Code worktrees
+.claude/worktrees/

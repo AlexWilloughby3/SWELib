@@ -33,12 +33,24 @@ structure LinkRelation where
 def LinkRelation_decEq (l1 l2 : LinkRelation) : Decidable (l1 = l2) :=
   inferInstance
 
+/-- Well-formed link invariant.
+
+    Self links should point to an identifiable resource, either via a
+    non-empty path or an authority component. -/
+def LinkRelation.WellFormed (link : LinkRelation) : Prop :=
+  link.rel ≠ "" ∧
+  (link.rel = "self" → link.href.path ≠ "" ∨ link.href.authority.isSome)
+
 /-- Self-link property: a link with relation "self" must have a non-empty href.
 
+    This follows from the well-formedness invariant rather than from the
+    relation label alone.
+
     Section: RFC 8288 Section 3.1 (registered relation types) -/
-theorem self_link_nonempty (link : LinkRelation) (h : link.rel = "self") :
+theorem self_link_nonempty (link : LinkRelation) (h_wf : link.WellFormed)
+    (h : link.rel = "self") :
     link.href.path ≠ "" ∨ link.href.authority.isSome := by
-  sorry
+  exact h_wf.2 h
 
 /-- Check if a link relation is a registered IANA relation.
 

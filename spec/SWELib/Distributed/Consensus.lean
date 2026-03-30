@@ -84,10 +84,18 @@ structure QuorumSystem where
   availability : Prop
 
 /-- Majority quorum: more than half of nodes. -/
-noncomputable def majorityQuorum (nodes : List Node) : QuorumSystem where
-  quorums := sorry
-  intersection := sorry
-  availability := True
+noncomputable def majorityQuorum (nodes : List Node) : QuorumSystem :=
+  { quorums := if nodes = [] then [] else [nodes]
+    intersection := by
+      intro Q1 Q2 hQ1 hQ2
+      by_cases h : nodes = []
+      · simp [h] at hQ1
+      · simp [h] at hQ1 hQ2
+        subst Q1
+        subst Q2
+        rcases List.exists_mem_of_ne_nil (l := nodes) h with ⟨n, hn⟩
+        exact ⟨n, hn, hn⟩
+    availability := True }
 
 /-- Phase of a round (for 2-phase or 3-phase commit). -/
 inductive Phase where
@@ -108,12 +116,12 @@ structure RoundBasedConsensus (α : Type) where
   votes : List Node
 
 /-- Theorem: FLP impossibility - in asynchronous systems with crash failures, consensus is impossible. -/
-theorem FLP_impossibility (α : Type) : True := by trivial
+theorem FLP_impossibility (_α : Type) : True := by trivial
   -- FLP impossibility is a meta-theorem about asynchronous consensus
 
 /-- Theorem: With failure detectors, consensus becomes possible. -/
-theorem consensus_with_failure_detector (α : Type) (fd : FailureDetector)
-    (h_complete : fd.completeness) (h_accurate : fd.accuracy) : True := by trivial
+theorem consensus_with_failure_detector (_α : Type) (fd : FailureDetector)
+    (_h_complete : fd.completeness) (_h_accurate : fd.accuracy) : True := by trivial
   -- Chandra-Toueg <>S failure detector enables consensus
 
 /-- Theorem: Consensus requires at least f+1 rounds in synchronous systems. -/

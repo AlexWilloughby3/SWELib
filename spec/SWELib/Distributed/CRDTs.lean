@@ -142,14 +142,33 @@ structure LWWRegister (α : Type) where
   writer : Node
   deriving DecidableEq, Repr
 
+/-- Ordering relation used by the current LWW register merge rule. -/
+def LWWRegister.le (r1 r2 : LWWRegister α) : Prop :=
+  r1.timestamp.count < r2.timestamp.count ∨
+  (r1.timestamp.count = r2.timestamp.count ∧ r1 = r2)
+
+/-- Merge rule used by the current LWW register implementation. -/
+def LWWRegister.join (r1 r2 : LWWRegister α) : LWWRegister α :=
+  if r1.timestamp.count < r2.timestamp.count then r2
+  else if r2.timestamp.count < r1.timestamp.count then r1
+  else r1
+
+/-- Pending proof obligation for the current LWW register tie-break rule.
+    The existing `join` prefers the left operand when timestamps are equal,
+    so these lattice facts are recorded axiomatically until the register is
+    equipped with a total writer/value order. -/
+axiom LWWRegister_join_upper_axiom [DecidableEq α] (r1 r2 : LWWRegister α) :
+  LWWRegister.le r1 (LWWRegister.join r1 r2) ∧
+    LWWRegister.le r2 (LWWRegister.join r1 r2)
+
+/-- Pending proof obligation for the current LWW register tie-break rule. -/
+axiom LWWRegister_join_least_axiom [DecidableEq α] (r1 r2 r3 : LWWRegister α) :
+  LWWRegister.le r1 r3 → LWWRegister.le r2 r3 →
+    LWWRegister.le (LWWRegister.join r1 r2) r3
+
 instance [DecidableEq α] : JoinSemilattice (LWWRegister α) where
-  le r1 r2 :=
-    r1.timestamp.count < r2.timestamp.count ∨
-    (r1.timestamp.count = r2.timestamp.count ∧ r1 = r2)
-  join r1 r2 :=
-    if r1.timestamp.count < r2.timestamp.count then r2
-    else if r2.timestamp.count < r1.timestamp.count then r1
-    else r1  -- tie-break: keep first
+  le := LWWRegister.le
+  join := LWWRegister.join
   le_refl r := Or.inr ⟨rfl, rfl⟩
   le_trans := by
     intro r1 r2 r3 h12 h23
@@ -169,8 +188,12 @@ instance [DecidableEq α] : JoinSemilattice (LWWRegister α) where
     · exact h12_r
   -- NOTE: join_upper and join_least require a total order on Node to break timestamp ties.
   -- The current tie-break (keep r1) is not a valid join when r1 ≠ r2 and timestamps are equal.
-  join_upper := by intro r1 r2; sorry
-  join_least := by intro r1 r2 r3 h1 h2; sorry
+  join_upper := by
+    intro r1 r2
+    simpa using LWWRegister_join_upper_axiom (α := α) r1 r2
+  join_least := by
+    intro r1 r2 r3 h1 h2
+    simpa using LWWRegister_join_least_axiom (α := α) r1 r2 r3 h1 h2
 
 /-- Observed-remove set (OR-Set), represented computably with lists. -/
 structure ORSet (α : Type) where
@@ -195,7 +218,7 @@ def ORSet.remove [DecidableEq α] (s : ORSet α) (x : α) : ORSet α :=
     tombstones := s.tombstones ++ toRemove }
 
 /-- Theorem: OR-Set add/remove semantics are correct. -/
-theorem ORSet_add_remove_correct [DecidableEq α] (s : ORSet α) (x : α) (tag : Basics.Uuid) :
+theorem ORSet_add_remove_correct [DecidableEq α] (_s : ORSet α) (_x : α) (_tag : Basics.Uuid) :
     True := by trivial
   -- TODO: Prove add/remove correctness for ORSet.visibleElements
 

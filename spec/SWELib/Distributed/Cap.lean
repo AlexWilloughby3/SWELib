@@ -80,15 +80,15 @@ def systemExamples : List SystemClassification := [
 ]
 
 /-- Theorem: CA systems cannot tolerate partitions. -/
-theorem CA_no_partitions (model : CAPModel) (h_ca : model.cap = .CA) : True := by trivial
+theorem CA_no_partitions (_model : CAPModel) (_h_ca : _model.cap = .CA) : True := by trivial
   -- CA systems assume no partitions
 
 /-- Theorem: CP systems may sacrifice availability during partitions. -/
-theorem CP_may_block (model : CAPModel) (h_cp : model.cap = .CP) : True := by trivial
+theorem CP_may_block (_model : CAPModel) (_h_cp : _model.cap = .CP) : True := by trivial
   -- CP systems may block during partitions
 
 /-- Theorem: AP systems sacrifice consistency during partitions. -/
-theorem AP_inconsistent (model : CAPModel) (h_ap : model.cap = .AP) : True := by trivial
+theorem AP_inconsistent (_model : CAPModel) (_h_ap : _model.cap = .AP) : True := by trivial
   -- AP systems may return inconsistent data
 
 /-- CAP theorem implications for system design. -/

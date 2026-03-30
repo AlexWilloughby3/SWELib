@@ -33,7 +33,7 @@ instance : ToString OciError where
     | .invalidState => "invalid container state"
     | .invalidConfig => "invalid container configuration"
     | .hookFailed hookName error => s!"hook '{hookName}' failed: {error}"
-    | .systemError errno => s!"system error: {errno}"
+    | .systemError errno => s!"system error: {reprStr errno}"
 
 /-- Convert an OCI error to a string error message. -/
 def OciError.toErrorMessage (err : OciError) : String :=

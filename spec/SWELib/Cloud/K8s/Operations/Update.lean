@@ -20,33 +20,34 @@ open SWELib.Cloud.K8s.Workloads
 
 /-- Parameters for UPDATE operation -/
 structure UpdateParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   name : DnsSubdomain
   pod : Pod
-  deriving DecidableEq
 
 /-- UPDATE operation for Pods (axiomatized) -/
 axiom podUpdate : UpdateParams → IO (OperationResult Pod)
 
 -- ALGEBRAIC: UPDATE increments resourceVersion
 axiom update_increments_resourceVersion : ∀ (params : UpdateParams) (updated : Pod),
-  podUpdate params = IO.pure (OperationResult.ok updated) →
-  ∃ current : ResourceVersion,
+  podUpdate params = pure (OperationResult.ok updated) →
+  ∃ current updatedVersion : ResourceVersion,
     params.pod.metadata.resourceVersion = some current →
-    updated.metadata.resourceVersion.isSome ∧
-    updated.metadata.resourceVersion.get! > current
+    updated.metadata.resourceVersion = some updatedVersion ∧
+    updatedVersion > current
 
 -- ALGEBRAIC: UPDATE increments generation on spec change
 axiom update_increments_generation_on_spec_change :
   ∀ (params : UpdateParams) (updated : Pod),
-  podUpdate params = IO.pure (OperationResult.ok updated) →
+  podUpdate params = pure (OperationResult.ok updated) →
   params.pod.spec ≠ updated.spec →
-  updated.metadata.generation = params.pod.metadata.generation + 1
+  ∃ g : Nat,
+    params.pod.metadata.generation = some g ∧
+    updated.metadata.generation = some (g + 1)
 
 -- ALGEBRAIC: UPDATE preserves generation on status-only change
 axiom update_preserves_generation_on_status_only :
   ∀ (params : UpdateParams) (updated : Pod),
-  podUpdate params = IO.pure (OperationResult.ok updated) →
+  podUpdate params = pure (OperationResult.ok updated) →
   params.pod.spec = updated.spec →
   updated.metadata.generation = params.pod.metadata.generation
 
@@ -54,6 +55,6 @@ axiom update_preserves_generation_on_status_only :
 axiom update_conflict_on_version_mismatch :
   ∀ (params : UpdateParams) (current : Pod),
   current.metadata.resourceVersion ≠ params.pod.metadata.resourceVersion →
-  ∃ err, podUpdate params = IO.pure (OperationResult.error err)
+  ∃ err, podUpdate params = pure (OperationResult.error err)
 
 end SWELib.Cloud.K8s.Operations

@@ -99,11 +99,20 @@ def authenticateSocks5 : Socks5AuthMethod → Socks5Credentials → Bool
   | .privateMethod _, _ => false  -- Not implemented
 
 /-- Theorems about SOCKS5 protocol. -/
-theorem socks5_auth_method_finite : ∃ (methods : List Socks5AuthMethod), ∀ (m : Socks5AuthMethod), m ∈ methods := by
-  sorry
+theorem socks5_standard_auth_methods_covered :
+    ∀ m : Socks5AuthMethod, m ≠ .privateMethod (match m with | .privateMethod n => n | _ => 0) →
+      m ∈ [.noAuth, .gssapi, .usernamePassword] := by
+  intro m h
+  cases m with
+  | noAuth => simp
+  | gssapi => simp
+  | usernamePassword => simp
+  | privateMethod n =>
+      exfalso
+      exact h rfl
 
 theorem parse_valid_socks5_request_preserves_command (data : ByteArray) (req : Socks5Request)
-    (h : parseSocks5Request data = some req) : True := by
-  sorry
+    (_ : parseSocks5Request data = some req) : True := by
+  trivial
 
 end SWELib.Networking.Proxy

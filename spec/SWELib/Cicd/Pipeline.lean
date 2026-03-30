@@ -246,6 +246,14 @@ private def allDistinct : List String → Bool
   | [] => true
   | x :: xs => !xs.contains x && allDistinct xs
 
+private theorem allDistinct_eq_true_iff_nodup (xs : List String) :
+    allDistinct xs = true ↔ xs.Nodup := by
+  induction xs with
+  | nil =>
+      simp [allDistinct]
+  | cons x xs ih =>
+      simp [allDistinct, ih, List.nodup_cons, Bool.and_eq_true]
+
 /-- Validate a pipeline specification.
     Checks: all task names unique, all runAfter names exist,
     no task has retries > 0 with onError = continue_. -/
@@ -306,18 +314,41 @@ theorem computeStatus_succeeded :
     (∀ c ∈ children, c.status = .succeeded) →
     (∀ c ∈ finallyChildren, c.status = .succeeded) →
     computePipelineRunStatus children finallyChildren = .succeeded := by
-  sorry
+  intro h_children h_finally
+  have hAll :
+      (children ++ finallyChildren).all (fun c => c.status == .succeeded) = true := by
+    apply List.all_eq_true.mpr
+    intro c hc
+    rw [List.mem_append] at hc
+    cases hc with
+    | inl h => simp [h_children c h]
+    | inr h => simp [h_finally c h]
+  simp [computePipelineRunStatus, hAll]
 
 /-- A valid pipeline has unique task names. -/
 theorem taskNamesUnique :
     validatePipeline spec = true →
     (spec.tasks.map (·.name)).Nodup := by
-  sorry
+  intro h
+  have hDistinct : allDistinct (spec.tasks.map (·.name)) = true := by
+    simp [validatePipeline, Bool.and_eq_true, List.all_eq_true] at h
+    exact h.1.1
+  exact (allDistinct_eq_true_iff_nodup _).mp hDistinct
 
 /-- A valid pipeline has no tasks with retries > 0 and onError = continue_. -/
 theorem validatePipeline_noRetriesWithContinue :
     validatePipeline spec = true →
     ∀ t ∈ spec.tasks, t.retries > 0 → t.onError ≠ .continue_ := by
-  sorry
+  intro h t ht hRetries
+  have hValid :
+      ∀ t ∈ spec.tasks, t.retries = 0 ∨ t.onError ≠ .continue_ := by
+    simp [validatePipeline, Bool.and_eq_true, List.all_eq_true] at h
+    exact h.2
+  have ht' := hValid t ht
+  cases ht' with
+  | inl hZero =>
+      omega
+  | inr hCont =>
+      exact hCont
 
 end SWELib.Cicd.Pipeline

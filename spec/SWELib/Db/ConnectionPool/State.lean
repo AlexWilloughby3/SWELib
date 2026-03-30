@@ -39,6 +39,8 @@ structure PoolState where
   min_idle_ok : idle.length ≥ config.minimumIdle ∨ totalCount < config.maximumPoolSize
   /-- Invariant: wait list plus active connections ≤ maximumPoolSize -/
   wait_ok : waitList.length + active.length ≤ config.maximumPoolSize
+  /-- Invariant: a connection cannot be both active and idle -/
+  disjoint_ok : ∀ conn, conn ∈ active → conn ∉ idle
 
 /-- Check if the pool has available capacity for new connections. -/
 def hasCapacity (state : PoolState) : Bool :=
@@ -61,9 +63,6 @@ theorem total_count_constraint (state : PoolState) :
 /-- Theorem: Minimum idle invariant is always satisfied (from struct invariant). -/
 theorem min_idle_satisfied (state : PoolState) :
     satisfiesMinIdle state = true := by
-  simp only [satisfiesMinIdle, Bool.or_eq_true, Bool.decide_eq_true]
-  rcases state.min_idle_ok with h | h
-  · exact Or.inl h
-  · exact Or.inr h
+  rcases state.min_idle_ok with h | h <;> simp [satisfiesMinIdle, h]
 
 end SWELib.Db.ConnectionPool

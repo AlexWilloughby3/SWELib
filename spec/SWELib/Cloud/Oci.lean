@@ -35,46 +35,38 @@ The specification defines 6 core operations:
 
 namespace SWELib.Cloud
 
-/-- Re-export OCI types. -/
-export Oci (
-  ContainerStatus, Root, Mount, Seccomp, ProcessConfig, Hooks,
-  LinuxConfig, ContainerConfig, ContainerState,
-  ContainerStatus.creating, ContainerStatus.created, ContainerStatus.running,
-  ContainerStatus.stopped, ContainerStatus.paused,
-  ContainerConfig.isValid, ContainerStatus.canTransition, defaultOciVersion
+export SWELib.Cloud.Oci (
+  ContainerStatus Root Mount Seccomp ProcessConfig Hooks
+  LinuxConfig ContainerConfig ContainerState
+  ContainerStatus.creating ContainerStatus.created ContainerStatus.running
+  ContainerStatus.stopped ContainerStatus.paused
+  ContainerConfig.isValid ContainerStatus.canTransition defaultOciVersion
 )
-
-/-- Re-export OCI errors. -/
-export Oci (
-  OciError,
-  OciError.containerNotFound, OciError.containerIdNotUnique, OciError.invalidState,
-  OciError.invalidConfig, OciError.hookFailed, OciError.systemError,
-  OciError.toErrorMessage, OciError.isSystemError, OciError.isConfigError,
-  OciError.isStateError, OciError.hookFailedError, OciError.fromErrno
+export SWELib.Cloud.Oci (
+  OciError
+  OciError.containerNotFound OciError.containerIdNotUnique OciError.invalidState
+  OciError.invalidConfig OciError.hookFailed OciError.systemError
+  OciError.toErrorMessage OciError.isSystemError OciError.isConfigError
+  OciError.isStateError OciError.hookFailedError OciError.fromErrno
 )
-
-/-- Re-export container table operations. -/
-export Oci (
-  ContainerTable, ContainerTable.empty, ContainerTable.lookup,
-  ContainerTable.insert, ContainerTable.remove, ContainerTable.update,
-  ContainerTable.contains, ContainerTable.isIdUnique
+export SWELib.Cloud.Oci (
+  ContainerTable ContainerTable.empty ContainerTable.lookup
+  ContainerTable.insert ContainerTable.remove ContainerTable.update
+  ContainerTable.contains ContainerTable.isIdUnique
+  ContainerTable.ids ContainerTable.filterByStatus ContainerTable.countByStatus
 )
-
-/-- Re-export core operations. -/
-export Oci (
-  state, create, start, kill, delete, exec,
-  containerExists, getContainerStatus, transitionStatus
+export SWELib.Cloud.Oci (
+  state create start kill delete exec
+  containerExists getContainerStatus transitionStatus currentTime
 )
-
-/-- Re-export invariants. -/
-export Oci (
-  invariant_id_uniqueness, invariant_valid_transitions,
-  invariant_bundle_consistency, invariant_pid_consistency,
-  invariant_config_validity, invariant_timestamp_ordering,
-  invariant_hook_ordering, invariant_resource_isolation,
-  all_invariants,
-  create_preserves_id_uniqueness, start_preserves_valid_transitions,
-  kill_preserves_pid_consistency, delete_preserves_invariants,
+export SWELib.Cloud.Oci (
+  invariant_id_uniqueness invariant_valid_transitions
+  invariant_bundle_consistency invariant_pid_consistency
+  invariant_config_validity invariant_timestamp_ordering
+  invariant_hook_ordering invariant_resource_isolation
+  all_invariants
+  create_preserves_id_uniqueness start_preserves_valid_transitions
+  kill_preserves_pid_consistency delete_preserves_invariants
   empty_table_satisfies_invariants
 )
 

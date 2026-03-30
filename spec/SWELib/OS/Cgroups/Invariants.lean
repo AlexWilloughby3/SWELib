@@ -13,16 +13,16 @@ References:
 namespace SWELib.OS
 
 /-- Get CPU share of a cgroup (relative measure). Placeholder: returns 0. -/
-def cpu_share (cg : Cgroup) : Nat := 0
+def cpu_share (_cg : Cgroup) : Nat := 0
 
 /-- Check if a cgroup has no child cgroups. Placeholder: always False. -/
-def no_child_cgroups (cg : Cgroup) : Prop := False
+def no_child_cgroups (_cg : Cgroup) : Prop := False
 
 /-- Get list of child cgroups. Placeholder: always empty. -/
-def child_cgroups (parent : Cgroup) : List Cgroup := []
+def child_cgroups (_parent : Cgroup) : List Cgroup := []
 
 /-- Check if controller is available in parent cgroup. Placeholder: always False. -/
-def controller_available_in_parent (cg : Cgroup) (controller : CgroupController) : Prop :=
+def controller_available_in_parent (_cg : Cgroup) (_controller : CgroupController) : Prop :=
   False
 
 /-- Check if limit is valid for controller. -/
@@ -36,7 +36,7 @@ def limit_valid_for_controller (limit : CgroupLimit) (controller : CgroupControl
   | _, _ => False
 
 /-- Get cgroup type. Placeholder: always domain. -/
-def cgroup_type (cg : Cgroup) : CgroupType := .domain
+def cgroup_type (_cg : Cgroup) : CgroupType := .domain
 
 /-- Cgroup tree structure theorem.
 
@@ -57,7 +57,7 @@ theorem cgroup_tree_structure (cg1 cg2 : Cgroup) :
     A process can only be in one cgroup per controller hierarchy.
 -/
 theorem single_membership (pid : PID) (cg1 cg2 : Cgroup)
-  (h1 : pid_in_cgroup pid cg1) (h2 : pid_in_cgroup pid cg2) :
+  (h1 : pid_in_cgroup pid cg1) (_h2 : pid_in_cgroup pid cg2) :
   cg1 = cg2 :=
   False.elim h1  -- pid_in_cgroup is always False in the stub model
 
@@ -68,7 +68,7 @@ theorem single_membership (pid : PID) (cg1 cg2 : Cgroup)
 -/
 theorem memory_limit_oom (cg : Cgroup) (limit : Nat)
   (h : cgroup_set_limit cg CgroupController.memory (CgroupLimit.memory limit) = .ok ())
-  (h2 : ∃ usage, cgroup_get_usage cg CgroupController.memory = .ok usage ∧ usage ≥ limit) :
+  (_h2 : ∃ usage, cgroup_get_usage cg CgroupController.memory = .ok usage ∧ usage ≥ limit) :
   oom_killer_invoked cg := by
   simp [cgroup_set_limit] at h  -- stub always returns .error, contradicting .ok
 
@@ -79,7 +79,7 @@ theorem memory_limit_oom (cg : Cgroup) (limit : Nat)
 -/
 theorem pid_limit_enforcement (cg : Cgroup) (limit : Nat)
   (h : cgroup_set_limit cg CgroupController.pids (CgroupLimit.pidCount limit) = .ok ())
-  (h2 : current_pid_count cg ≥ limit) :
+  (_h2 : current_pid_count cg ≥ limit) :
   fork_would_fail_with_EAGAIN cg := by
   simp [cgroup_set_limit] at h  -- stub always returns .error
 
@@ -90,9 +90,9 @@ theorem pid_limit_enforcement (cg : Cgroup) (limit : Nat)
 -/
 theorem cpu_weight_fairness (cg1 cg2 : Cgroup) (w1 w2 : Nat)
   (h1 : cgroup_set_limit cg1 CgroupController.cpu (.cpuWeight w1) = .ok ())
-  (h2 : cgroup_set_limit cg2 CgroupController.cpu (.cpuWeight w2) = .ok ())
-  (h_valid1 : CgroupLimit.cpuWeightValid w1)
-  (h_valid2 : CgroupLimit.cpuWeightValid w2) :
+  (_h2 : cgroup_set_limit cg2 CgroupController.cpu (.cpuWeight w2) = .ok ())
+  (_h_valid1 : CgroupLimit.cpuWeightValid w1)
+  (_h_valid2 : CgroupLimit.cpuWeightValid w2) :
   cpu_share cg1 / cpu_share cg2 = w1 / w2 := by
   simp [cgroup_set_limit] at h1  -- stub always returns .error
 

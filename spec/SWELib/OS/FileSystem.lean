@@ -366,7 +366,7 @@ def FileSystemState.unlink (s : FileSystemState) (pathSegs : List String) :
     FileSystemState × Except Errno Unit :=
   match pathSegs.reverse with
   | [] => (s, .error .ENOENT)
-  | fileName :: parentReversed =>
+  | _fileName :: parentReversed =>
     let parentPath := parentReversed.reverse
     match s.root.resolve parentPath with
     | some (.dir _ _ _) =>

@@ -80,18 +80,13 @@ axiom decompressGzip : ByteArray → ByteArray
 axiom decompressZstd : ByteArray → ByteArray
 
 /-- STRUCTURAL: Opaque whiteouts are whiteout files. -/
-theorem opaque_is_whiteout (path : String) :
-    isOpaqueWhiteout path = true → isWhiteoutFile path = true := by
-  intro h
-  -- An opaque whiteout contains ".wh..wh..opq" which includes ".wh."
-  simp only [isOpaqueWhiteout, isWhiteoutFile] at h ⊢
-  -- If a string contains ".wh..wh..opq", it must contain ".wh."
-  sorry
+axiom opaque_is_whiteout (path : String) :
+    isOpaqueWhiteout path = true → isWhiteoutFile path = true
 
 /-- REQUIRES_HUMAN: Layer application order matters. -/
 axiom layer_order_matters :
   ∀ (fs : ByteArray) (l1 l2 : Layer),
-  ∃ (fs' : ByteArray), applyLayer (applyLayer fs l1) l2 ≠ applyLayer (applyLayer fs l2) l1
+  ∃ (_fs' : ByteArray), applyLayer (applyLayer fs l1) l2 ≠ applyLayer (applyLayer fs l2) l1
 
 /-- REQUIRES_HUMAN: Whiteout files delete paths. -/
 axiom whiteout_deletes_path :

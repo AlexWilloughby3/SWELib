@@ -1,3 +1,6 @@
+import Std
+import SWELib.Basics
+
 /-!
 # WebSocket Types
 
@@ -9,9 +12,6 @@ Basic enumerations and type definitions for WebSocket protocol (RFC 6455).
 - RFC 6455 Section 7.4: Status Codes
 - W3C WebSocket API: ReadyState, BinaryType
 -/
-
-import Std
-import SWELib.Basics
 
 namespace SWELib.Networking.Websocket
 
@@ -39,8 +39,10 @@ inductive Opcode where
   | PONG          -- 0xA
   deriving DecidableEq, Repr
 
-/-- Reserved opcodes (RFC 6455 Section 5.2). -/
-def reservedOpcodeRange : Set Nat := {3, 4, 5, 6, 7, 0xB, 0xC, 0xD, 0xE, 0xF}
+/-- Reserved opcode values (RFC 6455 Section 5.2). -/
+def isReservedOpcode (n : Nat) : Bool :=
+  n == 3 || n == 4 || n == 5 || n == 6 || n == 7 ||
+  n == 0xB || n == 0xC || n == 0xD || n == 0xE || n == 0xF
 
 /-- Valid close status codes (RFC 6455 Section 7.4). -/
 inductive CloseCode where
@@ -61,6 +63,33 @@ inductive CloseCode where
   | TLS_HANDSHAKE                -- 1015
   deriving DecidableEq, Repr
 
+/-- Map opcodes to their numeric values. -/
+def opcodeToNat : Opcode → Nat
+  | .CONTINUATION => 0x0
+  | .TEXT => 0x1
+  | .BINARY => 0x2
+  | .CLOSE => 0x8
+  | .PING => 0x9
+  | .PONG => 0xA
+
+/-- Map close codes to their numeric values. -/
+def closeCodeToNat : CloseCode → Nat
+  | .NORMAL_CLOSURE => 1000
+  | .GOING_AWAY => 1001
+  | .PROTOCOL_ERROR => 1002
+  | .UNSUPPORTED_DATA => 1003
+  | .NO_STATUS_RCVD => 1005
+  | .ABNORMAL_CLOSURE => 1006
+  | .INVALID_FRAME_PAYLOAD_DATA => 1007
+  | .POLICY_VIOLATION => 1008
+  | .MESSAGE_TOO_BIG => 1009
+  | .MANDATORY_EXTENSION => 1010
+  | .INTERNAL_ERROR => 1011
+  | .SERVICE_RESTART => 1012
+  | .TRY_AGAIN_LATER => 1013
+  | .BAD_GATEWAY => 1014
+  | .TLS_HANDSHAKE => 1015
+
 /-- Check if a numeric opcode is valid (RFC 6455 Section 5.2). -/
 def isValidOpcode (n : Nat) : Bool :=
   match n with
@@ -70,7 +99,7 @@ def isValidOpcode (n : Nat) : Bool :=
   | 0x8 => true    -- CLOSE
   | 0x9 => true    -- PING
   | 0xA => true    -- PONG
-  | n => n ∈ reservedOpcodeRange
+  | n => isReservedOpcode n
 
 /-- Check if a numeric close code is valid (RFC 6455 Section 7.4). -/
 def isValidCloseCode (n : Nat) : Bool :=
@@ -90,55 +119,30 @@ def isValidCloseCode (n : Nat) : Bool :=
   | 1013 => true   -- TRY_AGAIN_LATER
   | 1014 => true   -- BAD_GATEWAY
   | 1015 => true   -- TLS_HANDSHAKE
-  | n => (3000 ≤ n ∧ n ≤ 4999)  -- Reserved for libraries, frameworks, applications
+  | n => (3000 ≤ n && n ≤ 4999)  -- Reserved for libraries, frameworks, applications
 
 /-- Theorem: All defined opcodes are valid. -/
-theorem opcode_valid (op : Opcode) : isValidOpcode (opcodeToNat op) := by
+theorem opcode_valid (op : Opcode) : isValidOpcode (opcodeToNat op) = true := by
   cases op <;> simp [isValidOpcode, opcodeToNat]
-where
-  opcodeToNat : Opcode → Nat
-    | .CONTINUATION => 0x0
-    | .TEXT => 0x1
-    | .BINARY => 0x2
-    | .CLOSE => 0x8
-    | .PING => 0x9
-    | .PONG => 0xA
 
 /-- Theorem: All defined close codes are valid. -/
-theorem closeCode_valid (code : CloseCode) : isValidCloseCode (closeCodeToNat code) := by
+theorem closeCode_valid (code : CloseCode) : isValidCloseCode (closeCodeToNat code) = true := by
   cases code <;> simp [isValidCloseCode, closeCodeToNat]
-where
-  closeCodeToNat : CloseCode → Nat
-    | .NORMAL_CLOSURE => 1000
-    | .GOING_AWAY => 1001
-    | .PROTOCOL_ERROR => 1002
-    | .UNSUPPORTED_DATA => 1003
-    | .NO_STATUS_RCVD => 1005
-    | .ABNORMAL_CLOSURE => 1006
-    | .INVALID_FRAME_PAYLOAD_DATA => 1007
-    | .POLICY_VIOLATION => 1008
-    | .MESSAGE_TOO_BIG => 1009
-    | .MANDATORY_EXTENSION => 1010
-    | .INTERNAL_ERROR => 1011
-    | .SERVICE_RESTART => 1012
-    | .TRY_AGAIN_LATER => 1013
-    | .BAD_GATEWAY => 1014
-    | .TLS_HANDSHAKE => 1015
 
-/-- Theorem: Control frames have opcodes ≥ 0x8 (RFC 6455 Section 5.5). -/
-theorem isControlFrame (op : Opcode) : Bool :=
+/-- Control frames have opcodes ≥ 0x8 (RFC 6455 Section 5.5). -/
+def isControlFrame (op : Opcode) : Bool :=
   match op with
   | .CLOSE | .PING | .PONG => true
   | _ => false
 
-/-- Theorem: Data frames have opcodes ≤ 0x2 (RFC 6455 Section 5.6). -/
-theorem isDataFrame (op : Opcode) : Bool :=
+/-- Data frames have opcodes ≤ 0x2 (RFC 6455 Section 5.6). -/
+def isDataFrame (op : Opcode) : Bool :=
   match op with
   | .CONTINUATION | .TEXT | .BINARY => true
   | _ => false
 
 /-- Theorem: Control and data frames are disjoint sets. -/
-theorem control_data_disjoint (op : Opcode) : ¬(isControlFrame op ∧ isDataFrame op) := by
+theorem control_data_disjoint (op : Opcode) : ¬(isControlFrame op = true ∧ isDataFrame op = true) := by
   cases op <;> simp [isControlFrame, isDataFrame]
 
 end SWELib.Networking.Websocket

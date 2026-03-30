@@ -19,7 +19,7 @@ open SWELib.Cloud.K8s.Primitives
 structure ListMeta where
   selfLink : Option String := none  -- Deprecated
   resourceVersion : Option ResourceVersion := none
-  continue : Option String := none
+  «continue» : Option String := none
   remainingItemCount : Option Nat := none
   deriving DecidableEq
 

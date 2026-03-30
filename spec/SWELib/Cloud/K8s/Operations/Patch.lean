@@ -29,18 +29,17 @@ inductive PatchType where
 
 /-- Parameters for PATCH operation -/
 structure PatchParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   name : DnsSubdomain
   patchType : PatchType
   patch : String  -- Simplified: patch document as string
-  deriving DecidableEq
 
 /-- PATCH operation for Pods (axiomatized) -/
 axiom podPatch : PatchParams → IO (OperationResult Pod)
 
 -- ALGEBRAIC: PATCH increments resourceVersion
 axiom patch_increments_resourceVersion : ∀ (params : PatchParams) (pod : Pod),
-  podPatch params = IO.pure (OperationResult.ok pod) →
+  podPatch params = pure (OperationResult.ok pod) →
   pod.metadata.resourceVersion.isSome
 
 -- STRUCTURAL: Different patch types have different semantics

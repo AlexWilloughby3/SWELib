@@ -24,7 +24,7 @@ inductive Jwk where
       - `y`: y-coordinate
       - `d`: Optional private key -/
   | ec (x y : ByteArray) (d : Option ByteArray := none)
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- Get the key type of a JWK. -/
 def Jwk.keyType : Jwk → KeyType

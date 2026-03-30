@@ -13,18 +13,16 @@ import SWELib.Cloud.K8s.Operations.Delete
 import SWELib.Cloud.K8s.Operations.Watch
 import SWELib.Cloud.K8s.Operations.Patch
 
-/-- Operations for Kubernetes resources (Kubernetes spec section 6) -/
-
 namespace SWELib.Cloud.K8s
 
 -- Re-export operation types
-export Operations (ListMeta ObjectList OperationError OperationResult
-                  GetParams podGet
-                  ListParams podList
-                  CreateParams podCreate
-                  UpdateParams podUpdate
-                  DeleteParams PropagationPolicy podDelete
-                  WatchParams EventType WatchEvent podWatch
-                  PatchParams PatchType podPatch)
+export SWELib.Cloud.K8s.Operations (ListMeta ObjectList OperationError OperationResult
+  GetParams podGet
+  ListParams podList
+  CreateParams podCreate
+  UpdateParams podUpdate
+  DeleteParams podDelete
+  WatchParams EventType WatchEvent podWatch
+  PatchParams PatchType podPatch)
 
 end SWELib.Cloud.K8s

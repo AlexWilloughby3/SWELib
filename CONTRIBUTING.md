@@ -4,7 +4,7 @@ Thank you for your interest in contributing to SWELib! This document provides gu
 
 ## Code Organization
 
-SWELib has three distinct layers:
+SWELib has two distinct layers:
 
 ### 1. spec/ — Formal Specifications
 
@@ -13,26 +13,21 @@ SWELib has three distinct layers:
 - Must conform to Mathlib style
 - Every `sorry` must have a corresponding GitHub issue tagged `sorry-debt`
 
-### 2. bridge/ — Trust Boundary
+### 2. impl/ — Executable Implementations
 
-- Axioms asserting external functions satisfy spec properties
-- Explicitly documents all unproven real-world assumptions
-- Every axiom must have a `-- TRUST: <issue-url>` comment
-- Auditable as a single surface
-
-### 3. code/ — Executable Implementations
-
-- Imports spec/ for types and bridge/ for extern bindings
-- Contains `@[extern]` declarations
-- Links against C libraries via FFI
+- Contains executable Lean code, FFI bindings, and bridge axioms
+- `impl/SWELibImpl/Bridge/` — axioms asserting external functions satisfy spec properties
+- `impl/SWELibImpl/Ffi/` — `@[extern]` declarations
+- Links against C libraries via FFI (OpenSSL, libpq, libcurl, libssh2)
+- Every bridge axiom must have a `-- TRUST: <issue-url>` comment
 
 ## Adding a New Module
 
 ### Naming Conventions
 
 - Spec types: `SWELib.Domain.Concept`
-- Bridge axioms: `SWELibBridge.Domain.concept_conforms`
-- Code implementations: `SWELibCode.Domain.ConceptImpl`
+- Bridge axioms: `SWELibImpl.Bridge.Domain.concept_conforms`
+- Impl code: `SWELibImpl.Domain.ConceptImpl`
 
 ### File Granularity
 
@@ -50,18 +45,16 @@ SWELib has three distinct layers:
 
 ## Trust Boundary Discipline
 
-Every axiom in `bridge/` must:
+Every axiom in `impl/SWELibImpl/Bridge/` must:
 
 1. Have a corresponding GitHub issue documenting the justification
 2. Include a `-- TRUST: <issue-url>` comment
-3. Be checked by the `scripts/audit-bridge.sh` script
 
 ## Sorry Tracking
 
 Every `sorry` in `spec/` must:
 
 1. Have a corresponding GitHub issue tagged `sorry-debt`
-2. Be tracked by `scripts/sorry-report.sh`
 
 ## Style Guide
 

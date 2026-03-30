@@ -18,9 +18,9 @@ open SWELib.Basics
 structure ObjectMeta where
   -- User-managed fields
   name : DnsSubdomain
-  namespace : Option DnsLabel := none
-  labels : Std.HashMap LabelKey LabelValue := Std.HashMap.empty
-  annotations : Std.HashMap String String := Std.HashMap.empty
+  «namespace» : Option DnsLabel := none
+  labels : Std.HashMap LabelKey LabelValue := ∅
+  annotations : Std.HashMap String String := ∅
 
   -- System-managed fields (read-only)
   uid : Option Uuid := none
@@ -33,7 +33,6 @@ structure ObjectMeta where
   finalizers : List String := []
   managedFields : List String := []  -- Simplified representation
   selfLink : Option String := none   -- Deprecated but still present
-  deriving DecidableEq
 
 /-- Check if a resource is being deleted -/
 def ObjectMeta.isBeingDeleted (m : ObjectMeta) : Bool :=
@@ -41,7 +40,7 @@ def ObjectMeta.isBeingDeleted (m : ObjectMeta) : Bool :=
 
 /-- Get the effective namespace (default if not specified) -/
 def ObjectMeta.effectiveNamespace (m : ObjectMeta) : String :=
-  match m.namespace with
+  match m.«namespace» with
   | none => "default"
   | some ns => ns.val
 

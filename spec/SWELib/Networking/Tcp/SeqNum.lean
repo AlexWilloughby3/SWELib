@@ -42,7 +42,7 @@ def seqLt (a b : SeqNum) : Bool :=
 /-- Modular less-than-or-equal for sequence numbers.
     True when `a == b` or `seqLt a b`. -/
 def seqLe (a b : SeqNum) : Bool :=
-  a == b || seqLt a b
+  decide (a = b) || seqLt a b
 
 /-- Check whether sequence number `s` falls within the receive window
     starting at `start` with size `wnd` (RFC 9293 Section 3.4). -/
@@ -58,7 +58,5 @@ theorem seqLt_irrefl (a : SeqNum) : seqLt a a = false := by
 /-- Sequence number modular less-than-or-equal is reflexive. -/
 theorem seqLe_refl (a : SeqNum) : seqLe a a = true := by
   simp [seqLe]
-  -- a == a is true by BEq
-  sorry
 
 end SWELib.Networking.Tcp

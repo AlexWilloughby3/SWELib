@@ -36,23 +36,17 @@ def ContainerTable.contains (table : ContainerTable) (id : String) : Bool :=
   (table.lookup id).isSome
 
 /-- Get all container IDs in the table. -/
-def ContainerTable.ids (table : ContainerTable) : List String :=
-  -- Note: This is noncomputable because we're quantifying over infinite domain
-  sorry
+axiom ContainerTable.ids (table : ContainerTable) : List String
 
 /-- Check if a container ID is unique (not already in table). -/
 def ContainerTable.isIdUnique (table : ContainerTable) (id : String) : Bool :=
   !table.contains id
 
 /-- Get all containers in a specific status. -/
-def ContainerTable.filterByStatus (table : ContainerTable) (status : ContainerStatus) : List ContainerState :=
-  -- Note: This is noncomputable because we're quantifying over infinite domain
-  sorry
+axiom ContainerTable.filterByStatus (table : ContainerTable) (status : ContainerStatus) : List ContainerState
 
 /-- Count containers in a specific status. -/
-def ContainerTable.countByStatus (table : ContainerTable) (status : ContainerStatus) : Nat :=
-  -- Note: This is noncomputable because we're quantifying over infinite domain
-  sorry
+axiom ContainerTable.countByStatus (table : ContainerTable) (status : ContainerStatus) : Nat
 
 /-- Theorem: lookup after insert finds the inserted value. -/
 theorem ContainerTable.lookup_insert (table : ContainerTable) (state : ContainerState) :

@@ -27,12 +27,11 @@ structure PodSpec where
   activeDeadlineSeconds : Option Nat := none
   dnsPolicy : String := "ClusterFirst"
   nodeName : Option String := none
-  nodeSelector : Std.HashMap String String := Std.HashMap.empty
+  nodeSelector : Std.HashMap String String := ∅
   hostname : Option DnsLabel := none
   subdomain : Option DnsSubdomain := none
   schedulerName : String := "default-scheduler"
   -- Simplified: omitting volumes, security context, affinity, etc.
-  deriving DecidableEq
 
 /-- Validate a pod spec -/
 def PodSpec.isValid (spec : PodSpec) : Bool :=
@@ -42,13 +41,13 @@ def PodSpec.isValid (spec : PodSpec) : Bool :=
 
 /-- Create a minimal pod spec with one container -/
 def PodSpec.withContainer (c : Container) : PodSpec :=
-  ⟨[c], by simp⟩
+  { containers := [c]
+    h_containers_nonempty := by simp }
 
 /-- Add a container to a pod spec -/
 def PodSpec.addContainer (spec : PodSpec) (c : Container) : PodSpec :=
-  ⟨spec.containers ++ [c], by simp [spec.h_containers_nonempty],
-   spec.initContainers, spec.restartPolicy, spec.terminationGracePeriodSeconds,
-   spec.activeDeadlineSeconds, spec.dnsPolicy, spec.nodeName, spec.nodeSelector,
-   spec.hostname, spec.subdomain, spec.schedulerName⟩
+  { spec with
+    containers := spec.containers ++ [c]
+    h_containers_nonempty := by simp [spec.h_containers_nonempty] }
 
 end SWELib.Cloud.K8s.Workloads

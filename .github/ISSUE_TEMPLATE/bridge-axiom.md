@@ -13,7 +13,7 @@ What external function/library are we trusting, and what property are we assumin
 
 ### Module
 
-Where will this axiom live? (e.g., `bridge/SWELibBridge/Syscalls/Socket.lean`)
+Where will this axiom live? (e.g., `impl/SWELibImpl/Bridge/Syscalls/Socket.lean`)
 
 ### Lean Representation
 

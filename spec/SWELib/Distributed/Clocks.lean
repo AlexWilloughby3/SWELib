@@ -38,11 +38,11 @@ def LamportClock.receive (clock : LamportClock) (msgTime : LogicalTime) : Lampor
 /-- Theorem: Lamport clocks are monotonic. -/
 theorem lamport_monotonic_local (clock : LamportClock) :
     clock.counter < clock.tick.counter := by
-  simp [LamportClock.tick, Nat.lt_succ_self]
+  simp [LamportClock.tick]
 
 theorem lamport_monotonic_send (clock : LamportClock) :
     clock.counter < (clock.send.1).counter := by
-  simp [LamportClock.send, LamportClock.tick, Nat.lt_succ_self]
+  simp [LamportClock.send, LamportClock.tick]
 
 theorem lamport_monotonic_receive (clock : LamportClock) (msgTime : LogicalTime) :
     clock.counter ≤ (clock.receive msgTime).counter := by
@@ -171,6 +171,9 @@ theorem hybridLogicalClock_total_order (h1 h2 : HybridLogicalClock) :
     (HybridLogicalClock.cmp h1 h2 = .lt) ∨
     (HybridLogicalClock.cmp h1 h2 = .eq) ∨
     (HybridLogicalClock.cmp h1 h2 = .gt) := by
-  sorry
+  cases HybridLogicalClock.cmp h1 h2
+  · exact Or.inl rfl
+  · exact Or.inr (Or.inl rfl)
+  · exact Or.inr (Or.inr rfl)
 
 end SWELib.Distributed

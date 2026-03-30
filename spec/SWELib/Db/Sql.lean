@@ -6,7 +6,6 @@ import SWELib.Db.Sql.WellFormedness
 import SWELib.Db.Sql.Eval
 import SWELib.Db.Sql.Algebra
 import SWELib.Db.Sql.Translation
-import SWELib.Db.Sql.Equivalence
 import SWELib.Db.Sql.Optimization
 import SWELib.Db.Sql.ValueExtended
 import SWELib.Db.Sql.Aggregates
@@ -81,63 +80,5 @@ def myQuery : SelectQuery MyConst :=
 -/
 
 namespace SWELib.Db.Sql
-
-namespace SWELib.Db.Sql
-
--- From Value.lean
-export Value (SqlValue Tribool veq vlt)
--- From ValueExtended.lean
-export ValueExtended (
-  vadd vsub vmul vdiv vmod vconcat vneg
-  applyBinOp applyUnOp
-)
--- From Schema.lean
-export Schema (AttrName Schema TableName Tuple)
--- From Relation.lean
-export Relation (Relation)
--- From Syntax.lean
-export Syntax (
-  BinOp UnOp CmpOp AggFunc SetOp SetQuantifier JoinKind SortDir NullsOrder
-  SqlExpr SqlCondition SelectItem FromItem OrderByItem SelectQuery
-)
--- From WellFormedness.lean
-export WellFormedness (containsAgg ExprWF CondWF)
--- From Eval.lean
-export Eval (DatabaseEnv EvalCtx evalExpr evalCond evalQuery)
--- From Algebra.lean
-export Algebra (RelAlg evalRelAlg)
--- From Aggregates.lean
-export Aggregates (computeAgg)
--- From GroupBy.lean
-export GroupBy (extractKey groupRowsBy computeAggregates applyGroupBy)
--- From Joins.lean
-export Joins (innerJoinRows leftOuterJoinRows rightOuterJoinRows fullOuterJoinRows)
--- From OrderBy.lean
-export OrderBy (RelAlgExt compareWithNulls sortRows evalRelAlgExt)
--- From Translation.lean
-export Translation (translate)
--- From TranslationComplete.lean
-export TranslationComplete (translateComplete)
--- From Equivalence.lean
-export Equivalence (translation_soundness)
--- From EquivalenceComplete.lean
-export EquivalenceComplete (translation_soundness_complete)
--- From Optimization.lean
-export Optimization (
-  select_pushdown_cross_left select_pushdown_cross_right
-  select_idempotent select_over_union project_merge project_over_cross
-  distinct_idempotent distinct_commutes_select cross_empty_left cross_empty_right
-  union_empty_left union_empty_right limit_zero offset_zero limit_offset_combine
-  select_on_singleton optimizer_rule_chain
-)
--- From OptimizationComplete.lean
-export OptimizationComplete (
-  select_pushdown_cross_left_complete select_pushdown_cross_right_complete
-  select_idempotent_complete select_over_union_complete
-  project_merge_complete distinct_idempotent_complete
-  limit_zero_complete offset_zero_complete
-)
--- From Refactor.lean
-export Refactor (isFullySupported evalSimple optimizePipeline ppRelAlg)
 
 end SWELib.Db.Sql

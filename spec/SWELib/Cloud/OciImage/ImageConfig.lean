@@ -92,7 +92,6 @@ structure ImageConfig where
   rootfs : RootFS
   /-- Layer history. -/
   history : List History := []
-  deriving DecidableEq
 
 /-- Create RootFS from layer digests. -/
 def RootFS.fromDigests (diffIds : List Digest) (h : diffIds ≠ []) : RootFS :=

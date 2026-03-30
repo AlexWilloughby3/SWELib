@@ -1,13 +1,16 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.Types
+
 /-!
 # TLS Basic Structures
 
 Basic data structures for TLS protocol (RFC 8446 for TLS 1.3, RFC 5246 for TLS 1.2).
 -/
 
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.Types
-
 namespace SWELib.Networking.Tls
+
+private instance : Repr ByteArray where
+  reprPrec b _ := repr b.toList
 
 /-- Client random value (RFC 8446 Section 4.1.3).
     In TLS 1.2: 32 bytes (4 bytes time + 28 random bytes)

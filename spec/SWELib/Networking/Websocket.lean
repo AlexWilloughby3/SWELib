@@ -41,15 +41,11 @@ This module specifies both the wire protocol (RFC 6455) and the JavaScript API
 
 namespace SWELib.Networking
 
-/-- Re-export WebSocket types and operations. -/
-export Websocket (
-  ReadyState, BinaryType, Opcode, CloseCode,
-  WebSocketFrame, WebSocket, WebSocketError, ProtocolError,
-  isValidOpcode, isValidCloseCode,
-  parseFrame, serializeFrame, maskPayload, unmaskPayload,
-  computeWebSocketKey, computeAcceptKey, validateAcceptKey,
-  WebSocket.new, WebSocket.send, WebSocket.close,
-  processIncomingFrame, createCloseFrame
-)
+export Websocket (ReadyState BinaryType Opcode CloseCode
+  WebSocketFrame WebSocket WebSocketError ProtocolError
+  isValidOpcode isValidCloseCode
+  parseFrame serializeFrame maskPayload unmaskPayload
+  computeWebSocketKey computeAcceptKey validateAcceptKey
+  processIncomingFrame createCloseFrame)
 
 end SWELib.Networking

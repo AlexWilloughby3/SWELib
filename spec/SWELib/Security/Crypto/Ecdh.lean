@@ -76,11 +76,26 @@ theorem ecdhSharedSecret25519_symm (a b : ByteArray) (ha : a.size = 32) (hb : b.
 /-- X25519 public keys are 32 bytes (RFC 7748 Section 6.1). -/
 theorem generatePublicKey25519_size (priv : ByteArray) :
     (generatePublicKey25519 priv).size = 32 := by
-  sorry
+  unfold generatePublicKey25519 x25519
+  change (encodeLittleEndian
+      (montgomeryLadder (decodeLittleEndian (clampScalar25519 priv))
+        (decodeLittleEndian
+          (if (encodeLittleEndian x25519Params.basePoint 32).size = 32 then
+            (encodeLittleEndian x25519Params.basePoint 32).set! 31
+              ((encodeLittleEndian x25519Params.basePoint 32).get! 31 &&& 127)
+          else
+            encodeLittleEndian x25519Params.basePoint 32))
+        x25519Params) 32).size = 32
+  simp [encodeLittleEndian, ByteArray.size]
 
 /-- X448 public keys are 56 bytes (RFC 7748 Section 6.2). -/
 theorem generatePublicKey448_size (priv : ByteArray) :
     (generatePublicKey448 priv).size = 56 := by
-  sorry
+  unfold generatePublicKey448 x448
+  change (encodeLittleEndian
+      (montgomeryLadder (decodeLittleEndian (clampScalar448 priv))
+        (decodeLittleEndian (encodeLittleEndian x448Params.basePoint 56))
+        x448Params) 56).size = 56
+  simp [encodeLittleEndian, ByteArray.size]
 
 end SWELib.Security.Crypto.Ecdh

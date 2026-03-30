@@ -12,14 +12,11 @@ import SWELib.Cloud.K8s.Primitives.ResourceVersion
 import SWELib.Cloud.K8s.Primitives.ApiVersion
 import SWELib.Cloud.K8s.Primitives.RFC3339Time
 
-/-- Primitive types for Kubernetes API (Kubernetes spec section 1) -/
-
 namespace SWELib.Cloud.K8s
 
 -- Re-export all primitive types
-export Primitives (DnsSubdomain DnsLabel LabelKey LabelValue
-                  ResourceVersion ApiVersion RFC3339Time
-                  parseLabelKey parseApiVersion
-                  apiVersionV1 apiVersionAppsV1)
+export SWELib.Cloud.K8s.Primitives (DnsSubdomain DnsLabel LabelKey LabelValue
+  ResourceVersion ApiVersion RFC3339Time
+  parseApiVersion apiVersionV1 apiVersionAppsV1)
 
 end SWELib.Cloud.K8s

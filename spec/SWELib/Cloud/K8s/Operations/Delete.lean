@@ -20,30 +20,29 @@ open SWELib.Cloud.K8s.Workloads
 
 /-- Parameters for DELETE operation -/
 structure DeleteParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   name : DnsSubdomain
   gracePeriodSeconds : Option Nat := none
-  deriving DecidableEq
 
 /-- DELETE operation for Pods (axiomatized) -/
 axiom podDelete : DeleteParams → IO (OperationResult Pod)
 
 -- REQUIRES_HUMAN: DELETE sets deletionTimestamp
 axiom delete_sets_deletionTimestamp : ∀ (params : DeleteParams) (pod : Pod),
-  podDelete params = IO.pure (OperationResult.ok pod) →
+  podDelete params = pure (OperationResult.ok pod) →
   pod.metadata.deletionTimestamp.isSome
 
 -- REQUIRES_HUMAN: DELETE with finalizers keeps object visible
 axiom delete_with_finalizers_returns_accepted :
   ∀ (params : DeleteParams) (pod : Pod),
-  podDelete params = IO.pure (OperationResult.ok pod) →
+  podDelete params = pure (OperationResult.ok pod) →
   pod.metadata.finalizers ≠ [] →
   pod.metadata.deletionTimestamp.isSome
 
 -- REQUIRES_HUMAN: DELETE without finalizers removes immediately
 axiom delete_without_finalizers_removes :
   ∀ (params : DeleteParams) (pod : Pod),
-  podDelete params = IO.pure (OperationResult.ok pod) →
+  podDelete params = pure (OperationResult.ok pod) →
   pod.metadata.finalizers = [] →
   True  -- Immediate deletion (200 OK)
 

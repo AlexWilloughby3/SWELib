@@ -48,15 +48,15 @@ instance : ToString NamespaceError where
     The child process executes `fn` with argument `arg`.
     The `stack` parameter provides stack space for the child.
 -/
-def clone (fn : Unit → Unit) (stack : ByteArray) (flags : CloneFlags)
-  (arg : Unit) : Except NamespaceError (NamespacedPID × NamespacedPID) :=
+def clone (_fn : Unit → Unit) (_stack : ByteArray) (_flags : CloneFlags)
+  (_arg : Unit) : Except NamespaceError (NamespacedPID × NamespacedPID) :=
   .error .notSupported  -- Placeholder: not yet implemented
 
 /-- Disassociate parts of the process execution context.
 
     Moves the calling process to new namespaces as specified by `flags`.
 -/
-def unshare (flags : CloneFlags) : Except NamespaceError Unit :=
+def unshare (_flags : CloneFlags) : Except NamespaceError Unit :=
   .error .notSupported  -- Placeholder: not yet implemented
 
 /-- Reassociate thread with a namespace.
@@ -64,7 +64,7 @@ def unshare (flags : CloneFlags) : Except NamespaceError Unit :=
     Joins the namespace specified by `fd`. If `nstype` is provided,
     it must match the namespace type of `fd`.
 -/
-def setns (fd : NamespaceFD) (nstype : Option CloneFlags) : Except NamespaceError Unit :=
+def setns (_fd : NamespaceFD) (_nstype : Option CloneFlags) : Except NamespaceError Unit :=
   .error .notSupported  -- Placeholder: not yet implemented
 
 /-- Get a file descriptor for a process's namespace.
@@ -72,7 +72,7 @@ def setns (fd : NamespaceFD) (nstype : Option CloneFlags) : Except NamespaceErro
     Returns a file descriptor that refers to the namespace of type `ns`
     for the process `pid`.
 -/
-def get_namespace_fd (pid : NamespacedPID) (ns : Namespace) : Except NamespaceError NamespaceFD :=
+def get_namespace_fd (_pid : NamespacedPID) (_ns : Namespace) : Except NamespaceError NamespaceFD :=
   .error .notSupported  -- Placeholder: not yet implemented
 
 /-- Check if a namespace file descriptor is still valid.
@@ -109,7 +109,7 @@ def unshare_network : Except NamespaceError Unit :=
     In a user namespace, a process can have all capabilities even if
     it lacks them in the parent namespace.
 -/
-def has_all_capabilities_in_namespace (pid : NamespacedPID) : Prop :=
+def has_all_capabilities_in_namespace (_pid : NamespacedPID) : Prop :=
   False  -- Placeholder: requires system capability model
 
 /-- Check if two processes can communicate via localhost.
@@ -117,7 +117,7 @@ def has_all_capabilities_in_namespace (pid : NamespacedPID) : Prop :=
     Processes in different network namespaces cannot communicate
     via localhost even if they use the same port.
 -/
-def can_connect_localhost (ns1 ns2 : NamespaceFD) : Prop :=
+def can_connect_localhost (_ns1 _ns2 : NamespaceFD) : Prop :=
   False  -- Placeholder: requires network namespace model
 
 end SWELib.OS

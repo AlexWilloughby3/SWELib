@@ -2,16 +2,29 @@ import SWELib.Basics.Time
 import SWELib.Security.Jwt.Algorithm
 import Lean.Data.Json
 
+open Lean
+
 namespace SWELib.Security.Jwt
+
+/-- Local alias for JSON object maps in this Lean version. -/
+abbrev JsonObject := Std.TreeMap.Raw String Json
+
+/-- Validate StringOrURI according to RFC 7519 Section 2.
+    A StringOrURI is a string that, if it contains a colon (":"),
+    must be a valid URI. -/
+def isValidStringOrURI (s : String) : Bool :=
+  if s.contains ':' then
+    s.startsWith "http://" ∨ s.startsWith "https://" ∨ s.startsWith "urn:"
+  else
+    true
 
 /-- StringOrURI type for claims that can be either strings or URIs (RFC 7519 Section 2).
     Must not contain a colon (":") unless it's a URI. -/
 structure StringOrURI where
   value : String
   valid : isValidStringOrURI value := by
-    -- Defined in Parse.lean
     simp [isValidStringOrURI]
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- JOSE Header parameters (RFC 7515 Section 4).
     Only includes essential parameters for JWT validation. -/
@@ -34,7 +47,7 @@ structure JoseHeader where
   x5t : Option String := none
   /-- X.509 Certificate SHA-256 Thumbprint (RFC 7515 Section 4.1.8) -/
   x5tS256 : Option String := none
-  deriving DecidableEq, Repr
+  deriving DecidableEq
 
 /-- JWT Claims Set (RFC 7519 Section 4).
     Includes registered claims and custom claims. -/
@@ -46,16 +59,15 @@ structure JwtClaimsSet where
   /-- Audience (RFC 7519 Section 4.1.3) -/
   aud : Option (List String) := none
   /-- Expiration Time (RFC 7519 Section 4.1.4) -/
-  exp : Option NumericDate := none
+  exp : Option SWELib.Basics.NumericDate := none
   /-- Not Before (RFC 7519 Section 4.1.5) -/
-  nbf : Option NumericDate := none
+  nbf : Option SWELib.Basics.NumericDate := none
   /-- Issued At (RFC 7519 Section 4.1.6) -/
-  iat : Option NumericDate := none
+  iat : Option SWELib.Basics.NumericDate := none
   /-- JWT ID (RFC 7519 Section 4.1.7) -/
   jti : Option String := none
   /-- Custom claims as JSON object -/
-  custom : Json.Object := {}
-  deriving DecidableEq, Repr
+  custom : JsonObject := Std.TreeMap.Raw.empty
 
 /-- Complete JWT structure with header, claims, and signature.
     The signature is optional for unsecured JWTs (alg = "none"). -/
@@ -66,7 +78,6 @@ structure Jwt where
   claims : JwtClaimsSet
   /-- Signature (empty for unsecured JWTs) -/
   signature : ByteArray := ByteArray.empty
-  deriving DecidableEq, Repr
 
 /-- Check if a JWT is unsecured (alg = "none"). -/
 def Jwt.isUnsecured (jwt : Jwt) : Bool :=
@@ -79,14 +90,14 @@ def Jwt.hasSignature (jwt : Jwt) : Bool :=
 /-- Theorem: Unsecured JWTs have empty signatures. -/
 -- NOTE: The Jwt structure has no invariant linking alg=none to signature=empty.
 -- This theorem requires a system model hypothesis capturing that constraint.
-theorem Jwt.unsecured_has_empty_signature (jwt : Jwt) (h : jwt.isUnsecured)
+theorem Jwt.unsecured_has_empty_signature (jwt : Jwt) (_h : jwt.isUnsecured)
     (h_sig : jwt.signature = ByteArray.empty) :
     jwt.signature = ByteArray.empty := h_sig
 
 /-- Create a minimal JWT with only algorithm specified. -/
 def Jwt.mkMinimal (alg : JwtAlgorithm) : Jwt :=
   { header := { alg := alg }
-    claims := {}
+    claims := { custom := Std.TreeMap.Raw.empty }
     signature := ByteArray.empty }
 
 /-- Update JWT claims. -/

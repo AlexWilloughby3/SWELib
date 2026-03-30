@@ -10,6 +10,9 @@ The 6 core OCI runtime operations: state, create, start, kill, delete, exec.
 
 namespace SWELib.Cloud.Oci
 
+/-- AXIOM: The runtime provides a current timestamp. -/
+axiom currentTime : SWELib.Basics.NumericDate
+
 /-- `state` operation: query container state.
     Returns the current state of a container. -/
 def state (table : ContainerTable) (id : String) : Except OciError ContainerState :=
@@ -20,7 +23,7 @@ def state (table : ContainerTable) (id : String) : Except OciError ContainerStat
 /-- `create` operation: create a container.
     Creates a new container with the given ID, bundle path, and configuration.
     The container starts in `creating` status. -/
-def create (table : ContainerTable) (id : String) (bundle : String) (config : ContainerConfig) :
+noncomputable def create (table : ContainerTable) (id : String) (bundle : String) (config : ContainerConfig) :
     Except OciError (ContainerTable × ContainerState) := do
   -- Check if container ID is unique
   if table.contains id then
@@ -31,7 +34,7 @@ def create (table : ContainerTable) (id : String) (bundle : String) (config : Co
     throw .invalidConfig
 
   -- Create initial container state
-  let now : SWELib.Basics.NumericDate := sorry  -- Need actual time
+  let now : SWELib.Basics.NumericDate := currentTime
   let initialState : ContainerState :=
     { id := id
       bundle := bundle
@@ -61,7 +64,7 @@ def create (table : ContainerTable) (id : String) (bundle : String) (config : Co
 
 /-- `start` operation: start a container.
     Starts a previously created container. -/
-def start (table : ContainerTable) (id : String) : Except OciError (ContainerTable × ContainerState) := do
+noncomputable def start (table : ContainerTable) (id : String) : Except OciError (ContainerTable × ContainerState) := do
   let state ← match table.lookup id with
     | some s => .ok s
     | none => .error .containerNotFound
@@ -78,7 +81,7 @@ def start (table : ContainerTable) (id : String) : Except OciError (ContainerTab
 
   -- TODO: Actually start the container process
   -- For now, we just update the status
-  let now : SWELib.Basics.NumericDate := sorry  -- Need actual time
+  let now : SWELib.Basics.NumericDate := currentTime
   let startedState :=
     { state with
       status := .running
@@ -95,7 +98,7 @@ def start (table : ContainerTable) (id : String) : Except OciError (ContainerTab
 
 /-- `kill` operation: send a signal to a container.
     Sends the specified signal to the container's init process. -/
-def kill (table : ContainerTable) (id : String) (signal : SWELib.OS.Signal) :
+noncomputable def kill (table : ContainerTable) (id : String) (signal : SWELib.OS.Signal) :
     Except OciError (ContainerTable × ContainerState) := do
   let state ← match table.lookup id with
     | some s => .ok s
@@ -110,7 +113,7 @@ def kill (table : ContainerTable) (id : String) (signal : SWELib.OS.Signal) :
   let updatedState :=
     match signal with
     | .SIGKILL | .SIGTERM =>
-      let now : SWELib.Basics.NumericDate := sorry
+      let now : SWELib.Basics.NumericDate := currentTime
       { state with
         status := .stopped
         stoppedAt := some now
@@ -146,7 +149,7 @@ def delete (table : ContainerTable) (id : String) : Except OciError ContainerTab
 
 /-- `exec` operation: execute a command in a running container.
     Creates a new process inside the container and returns its PID. -/
-def exec (table : ContainerTable) (id : String) (args : Array String) :
+def exec (table : ContainerTable) (id : String) (_args : Array String) :
     Except OciError (ContainerTable × SWELib.OS.PID) := do
   let state ← match table.lookup id with
     | some s => .ok s

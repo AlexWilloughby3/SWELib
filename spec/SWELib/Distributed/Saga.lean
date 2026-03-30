@@ -57,7 +57,57 @@ inductive SagaMessage where
 
 /-- Saga execution algorithm (forward recovery). -/
 def sagaExecuteStep (saga : Saga) (msg : SagaMessage) : Saga × List (SagaMessage) :=
-  sorry
+  match msg with
+  | .executeStep sagaId stepId action =>
+    if saga.id = sagaId ∧ saga.currentStep < saga.steps.length then
+      let updatedSteps := saga.steps.map (fun step =>
+        if step.id = stepId then { step with state := "executing", action := action } else step)
+      ({ saga with steps := updatedSteps, state := "active" }, [])
+    else
+      (saga, [])
+  | .stepCompleted sagaId stepId =>
+    if saga.id = sagaId then
+      let updatedSteps := saga.steps.map (fun step =>
+        if step.id = stepId then { step with state := "completed" } else step)
+      let nextStep := saga.currentStep + 1
+      match updatedSteps.drop nextStep with
+      | step :: _ =>
+        ({ saga with steps := updatedSteps, currentStep := nextStep, state := "active" },
+         [.executeStep saga.id step.id step.action])
+      | [] =>
+        ({ saga with steps := updatedSteps, currentStep := nextStep, state := "completed" }, [])
+    else
+      (saga, [])
+  | .stepFailed sagaId stepId _error =>
+    if saga.id = sagaId then
+      let updatedSteps := saga.steps.map (fun step =>
+        if step.id = stepId then { step with state := "failed" } else step)
+      let compensations :=
+        updatedSteps.reverse.filterMap (fun step =>
+          if step.state = "completed" then
+            some (.compensateStep saga.id step.id step.compensation)
+          else
+            none)
+      ({ saga with steps := updatedSteps, state := "compensating" }, compensations)
+    else
+      (saga, [])
+  | .compensateStep sagaId stepId compensation =>
+    if saga.id = sagaId then
+      let updatedSteps := saga.steps.map (fun step =>
+        if step.id = stepId then { step with state := "compensating", compensation := compensation } else step)
+      ({ saga with steps := updatedSteps, state := "compensating" }, [])
+    else
+      (saga, [])
+  | .compensationCompleted sagaId stepId =>
+    if saga.id = sagaId then
+      let updatedSteps := saga.steps.map (fun step =>
+        if step.id = stepId then { step with state := "compensated" } else step)
+      let allCompensated := updatedSteps.all (fun step =>
+        step.state != "completed" && step.state != "failed" && step.state != "compensating")
+      let newState := if allCompensated then "compensated" else saga.state
+      ({ saga with steps := updatedSteps, state := newState }, [])
+    else
+      (saga, [])
 
 /-- Saga orchestration vs choreography. -/
 inductive SagaPattern where
@@ -105,12 +155,12 @@ structure SagaInMicroservices where
 /-- Theorem: Saga ensures eventual consistency. -/
 -- NOTE: h_props.eventuallyConsistent is an arbitrary Prop provided as a hypothesis.
 -- The theorem holds trivially since the caller provides the eventual consistency proof.
-theorem saga_eventual_consistency (saga : Saga) (h_props : SagaProperties)
+theorem saga_eventual_consistency (_saga : Saga) (h_props : SagaProperties)
     (h_ec : h_props.eventuallyConsistent) :
     h_props.eventuallyConsistent := h_ec
 
 /-- Theorem: Saga compensation ensures rollback. -/
-theorem saga_compensation_rollback (saga : Saga) (h_props : SagaProperties) :
+theorem saga_compensation_rollback (saga : Saga) (_h_props : SagaProperties) :
     saga.state = "compensated" → True := by
   intro _; trivial
 

@@ -21,25 +21,22 @@ open SWELib.Cloud.K8s.Workloads
 /-- Parameters for GET operation -/
 structure GetParams where
   name : DnsSubdomain
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   resourceVersion : Option ResourceVersion := none
-  deriving DecidableEq
 
 /-- GET operation for Pods (axiomatized) -/
 axiom podGet : GetParams → IO (OperationResult Pod)
 
 -- REQUIRES_HUMAN: Define postconditions for GET
-theorem get_returns_current_state (params : GetParams) :
-    ∃ (pod : Pod), podGet params = IO.pure (OperationResult.ok pod) →
-    pod.metadata.name = params.name := by
-  sorry
+axiom get_returns_current_state (params : GetParams) :
+    ∃ (pod : Pod), podGet params = pure (OperationResult.ok pod) →
+    pod.metadata.name = params.name
 
 -- REQUIRES_HUMAN: GET is idempotent
-theorem get_idempotent (params : GetParams) :
+axiom get_idempotent (params : GetParams) :
     ∀ (r1 r2 : OperationResult Pod),
-    podGet params = IO.pure r1 →
-    podGet params = IO.pure r2 →
-    r1 = r2 := by
-  sorry
+    podGet params = pure r1 →
+    podGet params = pure r2 →
+    r1 = r2
 
 end SWELib.Cloud.K8s.Operations

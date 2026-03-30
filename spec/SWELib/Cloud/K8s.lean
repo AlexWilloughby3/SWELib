@@ -12,7 +12,7 @@ import SWELib.Cloud.K8s.Networking
 import SWELib.Cloud.K8s.Operations
 import SWELib.Cloud.K8s.Invariants
 
-/--
+/-!
 # Kubernetes API Fundamentals Formalization
 
 This module provides a formal specification of core Kubernetes API concepts,
@@ -59,7 +59,7 @@ def myPod : Pod := {
 
 namespace SWELib.Cloud
 
-/-- Kubernetes API fundamentals -/
+-- Kubernetes API fundamentals.
 namespace K8s
 
 -- All types are re-exported through their respective submodules

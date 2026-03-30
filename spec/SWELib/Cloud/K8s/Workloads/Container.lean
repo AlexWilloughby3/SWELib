@@ -46,11 +46,11 @@ def uniqueContainerNames (containers : List Container) : Bool :=
 -- STRUCTURAL
 theorem uniqueContainerNames_empty :
     uniqueContainerNames [] = true := by
-  sorry
+  simp [uniqueContainerNames]
 
 -- STRUCTURAL
 theorem uniqueContainerNames_singleton (c : Container) :
     uniqueContainerNames [c] = true := by
-  sorry
+  simp [uniqueContainerNames, List.eraseDups_cons]
 
 end SWELib.Cloud.K8s.Workloads

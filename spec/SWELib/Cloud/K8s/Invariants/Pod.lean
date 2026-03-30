@@ -20,7 +20,7 @@ axiom inv11_pod_phase_transitions :
     pod.status.phase = some PodPhase.Failed →
     -- Terminal states don't change
     ∀ (params : UpdateParams) (result : Pod),
-    podUpdate pod params = IO.pure (OperationResult.ok result) →
+    podUpdate params = pure (OperationResult.ok result) →
     result.status.phase = pod.status.phase
 
 -- REQUIRES_HUMAN: INV-12: Container names are unique

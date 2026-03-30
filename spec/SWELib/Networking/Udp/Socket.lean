@@ -28,8 +28,7 @@ structure SocketState where
   /-- Whether socket is connected to a remote address -/
   connected : Bool
   /-- Remote address if connected -/
-  remoteAddress : Option Std.Net.Addr
-  deriving Repr
+  remoteAddress : Option Std.Net.SocketAddress
 
 /-- Initial socket state (unbound, unconnected) -/
 def initialSocketState : SocketState :=
@@ -49,7 +48,7 @@ def udpBind (socket : SocketState) (port : Port) : Except String SocketState :=
     Except.ok { socket with localPort := port, bound := true }
 
 /-- Connect socket to remote address -/
-def udpConnect (socket : SocketState) (addr : Std.Net.Addr) : Except String SocketState :=
+def udpConnect (socket : SocketState) (addr : Std.Net.SocketAddress) : Except String SocketState :=
   if ¬ socket.bound then
     Except.error "Socket not bound"
   else
@@ -61,14 +60,16 @@ def udpDisconnect (socket : SocketState) : SocketState :=
 
 /-- Send datagram to destination -/
 def udpSend (socket : SocketState) (datagram : Datagram)
-    (destAddr : Std.Net.Addr) (destPort : Port) : Except String SocketState :=
+    (destAddr : Std.Net.SocketAddress) (destPort : Port) : Except String SocketState :=
   if ¬ socket.bound then
     Except.error "Socket not bound"
   else
-    -- Update datagram header with source port
-    let updatedHeader := { datagram.header with sourcePort := socket.localPort }
-    let updatedDatagram := { datagram with header := updatedHeader }
-    -- In a real implementation, this would queue the datagram for transmission
+    let _ := { datagram with
+      header := { datagram.header with
+        sourcePort := socket.localPort
+        destinationPort := destPort } }
+    let _ := destAddr
+    -- In a real implementation, this would queue the datagram for transmission.
     Except.ok socket
 
 /-- Send datagram using connected socket -/
@@ -81,13 +82,12 @@ def udpSendConnected (socket : SocketState) (datagram : Datagram) : Except Strin
     match socket.remoteAddress with
     | none => Except.error "No remote address"
     | some _ =>
-      -- Update datagram header with source port
-      let updatedHeader := { datagram.header with sourcePort := socket.localPort }
-      let updatedDatagram := { datagram with header := updatedHeader }
+      let _ := { datagram with
+        header := { datagram.header with sourcePort := socket.localPort } }
       Except.ok socket
 
 /-- Receive datagram from any source -/
-def udpReceive (socket : SocketState) : Except String (Option (Datagram × Std.Net.Addr × Port)) :=
+def udpReceive (socket : SocketState) : Except String (Option (Datagram × Std.Net.SocketAddress × Port)) :=
   if ¬ socket.bound then
     Except.error "Socket not bound"
   else
@@ -103,10 +103,10 @@ def canReceive (socket : SocketState) : Bool :=
   socket.bound
 
 /-- Get the local address of a bound socket -/
-def getLocalAddress (socket : SocketState) : Option (Std.Net.Addr × Port) :=
+def getLocalAddress (socket : SocketState) : Option (Std.Net.SocketAddress × Port) :=
   if socket.bound then
     -- In a real implementation, this would include the IP address
-    some (Std.Net.Addr.ipv4 0 0 0 0 0, socket.localPort)
+    some (.v4 { addr := Std.Net.IPv4Addr.ofParts 0 0 0 0, port := 0 }, socket.localPort)
   else
     none
 

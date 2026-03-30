@@ -1,3 +1,5 @@
+import SWELib.OS.Io
+
 /-!
 # Memory Types
 
@@ -10,9 +12,6 @@ References:
 - brk(2): https://man7.org/linux/man-pages/man2/brk.2.html
 -/
 
-import SWELib.OS.Io
-import Std.Data.BitVec
-
 namespace SWELib.OS.Memory
 
 /-! ## Virtual Addresses -/
@@ -23,7 +22,7 @@ structure VirtualAddress where
   deriving DecidableEq, Repr
 
 instance : ToString VirtualAddress where
-  toString v := s!"0x{v.addr.toHex}"
+  toString v := s!"0x{v.addr.toNat}"
 
 /-- The system page size (typically 4096 bytes). -/
 def PageSize : Nat := 4096

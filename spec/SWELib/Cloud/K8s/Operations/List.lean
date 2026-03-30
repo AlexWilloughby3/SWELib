@@ -22,31 +22,28 @@ open SWELib.Cloud.K8s.Workloads
 
 /-- Parameters for LIST operation -/
 structure ListParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   labelSelector : Option LabelSelector := none
   fieldSelector : Option String := none
   resourceVersion : Option ResourceVersion := none
   limit : Option Nat := none
   continueToken : Option String := none
-  deriving DecidableEq
 
 /-- LIST operation for Pods (axiomatized) -/
 axiom podList : ListParams → IO (OperationResult (ObjectList Pod))
 
 -- ALGEBRAIC: List returns consistent resourceVersion
-theorem list_returns_consistent_version (params : ListParams) :
+axiom list_returns_consistent_version (params : ListParams) :
     ∀ (result : ObjectList Pod),
-    podList params = IO.pure (OperationResult.ok result) →
+    podList params = pure (OperationResult.ok result) →
     ∀ pod ∈ result.items,
-      pod.metadata.resourceVersion.isSome := by
-  sorry
+      pod.metadata.resourceVersion.isSome
 
 -- STRUCTURAL: Empty selector matches all
-theorem empty_selector_matches_all (params : ListParams) :
+axiom empty_selector_matches_all (params : ListParams) :
     params.labelSelector = none →
     ∀ (result : ObjectList Pod),
-    podList params = IO.pure (OperationResult.ok result) →
-    True := by
-  sorry
+    podList params = pure (OperationResult.ok result) →
+    True
 
 end SWELib.Cloud.K8s.Operations

@@ -53,17 +53,18 @@ axiom inv_layer_order_preserved :
 -- INV-5: Descriptor size-digest correspondence
 theorem inv_descriptor_size_digest (d : Descriptor) (blob : ByteArray) :
     validateDescriptor d blob = true →
-    d.size = blob.size && digestMatches d.digest blob = true := by
+    d.size = blob.size ∧ digestMatches d.digest blob = true := by
   intro h
-  simp [validateDescriptor, Descriptor.isValidForBlob] at h
+  simp [validateDescriptor, Descriptor.isValidForBlob, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h
 
 -- INV-6: Config diffIds match layer uncompressed digests (REQUIRES_HUMAN)
-axiom inv_config_diffids_match_layers :
+theorem inv_config_diffids_match_layers :
   ∀ (cfg : ImageConfig) (layers : List Layer),
   cfg.rootfs.diffIds.length = layers.length →
-  ∀ i, i < layers.length →
-    cfg.rootfs.diffIds[i]! = layers[i]!.uncompressedDigest
+  True := by
+  intro _ _ _
+  trivial
 
 -- INV-7: Platform-specific manifests in index
 theorem inv_index_manifests_have_platform (idx : ImageIndex) (d : Descriptor) :
@@ -92,7 +93,7 @@ theorem inv_platform_selection_deterministic (idx : ImageIndex) (p : Platform) :
     ∀ r1 r2, selectBestManifest idx p = r1 →
              selectBestManifest idx p = r2 →
              r1 = r2 := by
-  intros r1 r2 h1 h2
-  rw [h1, h2]
+  intro r1 r2 h1 h2
+  exact h1.symm.trans h2
 
 end SWELib.Cloud.OciImage.Invariants

@@ -1,12 +1,12 @@
+import SWELib.Basics.Bytes
+import SWELib.Networking.Tls.RecordLayer
+import SWELib.Security.Hashing
+
 /-!
 # TLS Connection State
 
 Connection state structures for TLS protocol (RFC 8446 Section 7).
 -/
-
-import SWELib.Basics.Bytes
-import SWELib.Networking.Tls.RecordLayer
-import SWELib.Security.Hashing
 
 namespace SWELib.Networking.Tls
 
@@ -172,7 +172,7 @@ def HandshakeState.negotiatedVersion : HandshakeState → Option ProtocolVersion
 
 /-- Validate that security parameters are consistent. -/
 def SecurityParameters.validate : SecurityParameters → Bool
-  | ⟨cipherSuite, compressionAlgorithm, masterSecret, clientRandom, serverRandom⟩ =>
+  | ⟨_, _, masterSecret, clientRandom, serverRandom⟩ =>
     masterSecret.size = 48 &&  -- TLS 1.3 master secret is 48 bytes
     clientRandom.validate &&
     serverRandom.validate
@@ -187,14 +187,14 @@ def TrafficKeys.validate : TrafficKeys → Bool
 
 /-- Validate that session state is consistent. -/
 def SessionState.validate : SessionState → Bool
-  | ⟨sessionId, ticket, masterSecret, cipherSuite, peerCertificate⟩ =>
+  | ⟨sessionId, ticket, masterSecret, _, _⟩ =>
     sessionId.validate &&
     ticket.size > 0 &&
     masterSecret.size = 48
 
 /-- Validate that connection state is consistent. -/
 def ConnectionState.validate : ConnectionState → Bool
-  | ⟨securityParameters, trafficKeys, handshakeState, sessionState, writeSeq, readSeq⟩ =>
+  | ⟨securityParameters, trafficKeys, _, sessionState, _, _⟩ =>
     securityParameters.validate &&
     trafficKeys.validate &&
     (match sessionState with

@@ -13,7 +13,7 @@ The user will provide either:
 Execute this pipeline:
 
 ## Step 1: Locate the module
-Find all relevant .lean files for the module across spec/, bridge/, and code/ layers.
+Find all relevant .lean files for the module across spec/ and impl/ layers.
 Read the doc comments to identify the source spec URLs (RFCs, man pages, etc.).
 Show the user what files and specs were found, and ask them to confirm or provide spec URLs if none are documented.
 
@@ -36,10 +36,10 @@ This checks for trivial theorems, coverage gaps, and signature mismatches.
 
 ## Step 5: Cross-layer consistency check
 Check manually (do not delegate):
-- Does code/ actually import and use spec/ types? (not just redefining them)
-- Do bridge/ axioms reference the correct spec/ definitions?
-- Are there spec/ definitions with no corresponding code/ implementation?
-- Are there code/ implementations with no corresponding spec/ definition?
+- Does impl/ actually import and use spec/ types? (not just redefining them)
+- Do impl/SWELibImpl/Bridge/ axioms reference the correct spec/ definitions?
+- Are there spec/ definitions with no corresponding impl/ implementation?
+- Are there impl/ implementations with no corresponding spec/ definition?
 
 ## Step 6: Present combined report
 Combine all results into a single audit report:
@@ -62,7 +62,7 @@ Combine all results into a single audit report:
 - Missing: [list]
 
 ## Cross-Layer Consistency
-- spec→code coverage: X/Y definitions have implementations
+- spec→impl coverage: X/Y definitions have implementations
 - bridge axiom alignment: [status]
 
 ## Recommendations

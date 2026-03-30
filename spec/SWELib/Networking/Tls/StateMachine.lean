@@ -1,10 +1,10 @@
+import SWELib.Networking.Tls.ConnectionState
+
 /-!
 # TLS State Machine
 
 State machine for TLS protocol (RFC 8446 Section 2).
 -/
-
-import SWELib.Networking.Tls.ConnectionState
 
 namespace SWELib.Networking.Tls
 
@@ -103,8 +103,8 @@ def TlsState.transitionOnKeyUpdate : TlsState → Option TlsState
   | _ => none
 
 /-- Check if a state transition is valid. -/
-def TlsState.isValidTransition (from to : TlsState) : Bool :=
-  match from, to with
+def TlsState.isValidTransition (src dst : TlsState) : Bool :=
+  match src, dst with
   | .start, .clientHelloSent => true
   | .clientHelloSent, .serverHelloReceived => true
   | .serverHelloReceived, .serverFinishedReceived => true

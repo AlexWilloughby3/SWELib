@@ -108,9 +108,7 @@ def bpfStep (s : BpfMachineState) (insn : SockFilter) (d : SeccompData)
       | .JGT  => s.A > srcVal
       | .JGE  => s.A >= srcVal
       | .JSET => (s.A &&& srcVal) != 0
-    if cond
-    then some { s with pc := s.pc + 1 + insn.jt.toNat }
-    else some { s with pc := s.pc + 1 + insn.jf.toNat }
+    some { s with pc := s.pc + 1 + (if cond then insn.jt.toNat else insn.jf.toNat) }
   -- RET — handled by bpfRun, not bpfStep
   | some (.ret _) => none
   -- MISC instructions

@@ -56,7 +56,7 @@ def Request.isConditional (req : Request) : Bool :=
     Returns false (precondition fails) when `*` is sent and resource
     doesn't exist, or the ETags don't strongly match. -/
 def evalIfMatch (ifMatchValue : String) (currentETag : Option ETag) : Bool :=
-  if ifMatchValue.trim == "*" then
+  if ifMatchValue.trimAscii == "*" then
     currentETag.isSome
   else
     match currentETag with
@@ -65,13 +65,13 @@ def evalIfMatch (ifMatchValue : String) (currentETag : Option ETag) : Bool :=
       -- Split comma-separated list and check for strong match
       let tags := ifMatchValue.splitOn ","
       tags.any fun t =>
-        let tv := t.trim.replace "\"" ""
+        let tv := t.trimAscii.replace "\"" ""
         ETag.strongEq { value := tv, weak := false } etag
 
 /-- RFC 9110 Section 13.2.3: Evaluate If-None-Match against current ETag.
     Returns false (condition fails) when the ETags weakly match. -/
 def evalIfNoneMatch (ifNoneMatchValue : String) (currentETag : Option ETag) : Bool :=
-  if ifNoneMatchValue.trim == "*" then
+  if ifNoneMatchValue.trimAscii == "*" then
     currentETag.isNone
   else
     match currentETag with
@@ -79,7 +79,7 @@ def evalIfNoneMatch (ifNoneMatchValue : String) (currentETag : Option ETag) : Bo
     | some etag =>
       let tags := ifNoneMatchValue.splitOn ","
       !tags.any fun t =>
-        let tv := t.trim.replace "\"" ""
+        let tv := t.trimAscii.replace "\"" ""
         ETag.weakEq { value := tv, weak := false } etag
 
 /-- RFC 9110 Section 13.2: Apply preconditions in the correct evaluation order.
@@ -96,7 +96,7 @@ def evaluatePreconditions
     (cond        : ConditionalHeaders)
     (method      : Method)
     (currentETag : Option ETag)
-    (resourceExists : Bool) : PreconditionResult :=
+    (_resourceExists : Bool) : PreconditionResult :=
   -- Step 1: If-Match (Section 13.1.1)
   let step1 : Option PreconditionResult :=
     cond.ifMatch.bind fun v =>

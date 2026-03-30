@@ -30,21 +30,39 @@ structure ConditionalRequest where
   ifUnmodifiedSince : Option SWELib.Basics.NumericDate := none
   deriving Repr, DecidableEq
 
+/-- Well-formed conditional request invariants.
+
+    This model treats exclusivity between If-Match / If-None-Match and
+    chronological ordering between time validators as explicit invariants. -/
+def ConditionalRequest.WellFormed (cr : ConditionalRequest) : Prop :=
+  (¬ (cr.ifMatch.isSome ∧ cr.ifNoneMatch.isSome)) ∧
+  match cr.ifModifiedSince, cr.ifUnmodifiedSince with
+  | some ims, some ius => ims < ius
+  | _, _ => True
 
 /-- Validation consistency: ifMatch and ifNoneMatch cannot both be present.
 
     Section: RFC 9110 Section 13.1 (mutually exclusive preconditions) -/
-theorem validation_consistency (cr : ConditionalRequest) :
+theorem validation_consistency (cr : ConditionalRequest) (h_wf : cr.WellFormed) :
     (cr.ifMatch.isSome ∧ cr.ifNoneMatch.isSome) → False := by
-  sorry
+  exact h_wf.1
 
 /-- Time monotonicity: ifModifiedSince must be less than ifUnmodifiedSince when both present.
 
     Section: RFC 9110 Section 13.1.3-13.1.4 (time validator semantics) -/
-theorem time_monotonicity (cr : ConditionalRequest) :
+theorem time_monotonicity (cr : ConditionalRequest) (h_wf : cr.WellFormed) :
     (cr.ifModifiedSince.isSome ∧ cr.ifUnmodifiedSince.isSome) →
     cr.ifModifiedSince.get! < cr.ifUnmodifiedSince.get! := by
-  sorry
+  intro h_some
+  cases h_ifm : cr.ifModifiedSince with
+  | none =>
+      simp [h_ifm] at h_some
+  | some ims =>
+      cases h_ifu : cr.ifUnmodifiedSince with
+      | none =>
+          simp [h_ifu] at h_some
+      | some ius =>
+          simpa [ConditionalRequest.WellFormed, h_ifm, h_ifu] using h_wf.2
 
 /-- Validate conditional request against current ETag.
 

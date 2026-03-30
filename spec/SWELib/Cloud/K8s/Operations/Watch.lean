@@ -33,21 +33,19 @@ inductive EventType where
 structure WatchEvent (α : Type) where
   type : EventType
   object : α
-  deriving DecidableEq
 
 /-- Parameters for WATCH operation -/
 structure WatchParams where
-  namespace : Option DnsLabel := none
+  «namespace» : Option DnsLabel := none
   resourceVersion : Option ResourceVersion := none
   labelSelector : Option LabelSelector := none
-  deriving DecidableEq
 
 /-- WATCH operation for Pods (axiomatized, returns stream as list) -/
 axiom podWatch : WatchParams → IO (OperationResult (List (WatchEvent Pod)))
 
 -- ALGEBRAIC: Watch resumes from resourceVersion
 axiom watch_resumes_from_version : ∀ (params : WatchParams) (events : List (WatchEvent Pod)),
-  podWatch params = IO.pure (OperationResult.ok events) →
+  podWatch params = pure (OperationResult.ok events) →
   params.resourceVersion.isSome →
   ∀ event ∈ events,
     event.object.metadata.resourceVersion.isSome

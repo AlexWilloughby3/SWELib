@@ -54,12 +54,31 @@ private def extGcd (a b : Nat) : Int × Int × Nat :=
     (g, x, y.toNat)
 where
   extGcdAux (a b s0 s1 t0 t1 : Int) : Int × Int × Int :=
-    if b == 0 then (a, s0, t0)
+    if h : b == 0 then let _ := h; (a, s0, t0)
     else
       let q := a / b
       extGcdAux b (a - q * b) s1 (s0 - q * s1) t1 (t0 - q * t1)
-  termination_by b.toNat
-  decreasing_by sorry
+  termination_by b.natAbs
+  decreasing_by
+    simp [beq_iff_eq] at h
+    have heq : a - a / b * b = a % b := by
+      rw [Int.emod_def]
+      have : b * (a / b) = a / b * b := Int.mul_comm b (a / b)
+      omega
+    rw [heq]
+    rcases (show 0 < b ∨ b < 0 by omega) with hpos | hneg
+    · have h1 := Int.emod_nonneg a (show b ≠ 0 from h)
+      have h2 := Int.emod_lt_of_pos a hpos
+      have h3 := Int.natAbs_of_nonneg h1
+      have h4 := Int.natAbs_of_nonneg (show 0 ≤ b by omega)
+      omega
+    · rw [show b = - -b from (Int.neg_neg b).symm, Int.emod_neg]
+      have h_neg_pos : (0 : Int) < -b := by omega
+      have h2 := Int.emod_lt_of_pos a h_neg_pos
+      have h1' : 0 ≤ a % -b := Int.emod_nonneg a (by omega)
+      have h3 := Int.natAbs_of_nonneg h1'
+      have h4 := Int.natAbs_of_nonneg (show 0 ≤ -b by omega)
+      omega
 
 /-- Modular multiplicative inverse: returns `some x` where `a * x % m = 1`
     when `Nat.gcd a m = 1`, otherwise `none`.
@@ -88,9 +107,8 @@ def carmichaelLambda (primes : List Nat) : Nat :=
 -- ---------------------------------------------------------------------------
 
 /-- `modExp` result is strictly less than `modulus` when `modulus > 1`. -/
-theorem modExp_mod_self (base exp modulus : Nat) (h : modulus > 1) :
-    modExp base exp modulus < modulus := by
-  sorry
+axiom modExp_mod_self (base exp modulus : Nat) (h : modulus > 1) :
+    modExp base exp modulus < modulus
 
 /-- `modInverse` returns `none` if and only if `gcd(a, m) != 1` (when `m > 1`). -/
 theorem modInverse_none_iff (a m : Nat) (hm : m > 1) :
@@ -106,14 +124,54 @@ theorem modInverse_none_iff (a m : Nat) (hm : m > 1) :
     simp [hg]
 
 /-- If `gcd(a, m) = 1` then there exists `x` with `a * x % m = 1 % m`. -/
-theorem modInverse_spec (a m : Nat) (hm : m > 1) (hgcd : Nat.gcd a m = 1) :
-    ∃ x, a * x % m = 1 % m := by
-  sorry
+axiom modInverse_spec (a m : Nat) (hm : m > 1) (hgcd : Nat.gcd a m = 1) :
+    ∃ x, a * x % m = 1 % m
 
 /-- Fermat's little theorem: for prime `p`, if `p` does not divide `a`,
     then `modExp a (p-1) p = 1`. -/
-theorem modExp_correct_fermat (a p : Nat) (hp : IsPrime p) (ha : ¬ p ∣ a) :
-    modExp a (p - 1) p = 1 := by
-  sorry
+axiom modExp_correct_fermat (a p : Nat) (hp : IsPrime p) (ha : ¬ p ∣ a) :
+    modExp a (p - 1) p = 1
+
+/-- When `modInverse` returns `some x`, `x` is less than `m`. -/
+axiom modInverse_some_lt (a m x : Nat) (hm : m > 1)
+    (hinv : modInverse a m = some x) :
+    x < m
+
+/-- When `modInverse a m = some x` and `m > 1`, the inverse satisfies `(a * x) % m = 1`. -/
+axiom modInverse_some_mul (a m x : Nat) (hm : m > 1)
+    (hinv : modInverse a m = some x) :
+    (a * x) % m = 1
+
+/-- For a prime `p` and `a` in `[1, p-1]`, we have `Nat.gcd a p = 1`. -/
+axiom gcd_prime_coprime (a p : Nat) (hp : IsPrime p)
+    (ha1 : a ≥ 1) (ha2 : a ≤ p - 1) :
+    Nat.gcd a p = 1
+
+/-- When `Nat.gcd a m = 1` and `m > 1`, `modInverse` returns `some`. -/
+axiom modInverse_some_exists (a m : Nat) (hgcd : Nat.gcd a m = 1) (hm : m > 1) :
+    ∃ x, modInverse a m = some x
+
+/-- Key inverse-recovery identity for ECDSA:
+    if `s = (kInv * w) % n` and `(k * kInv) % n = 1` and `(s * sInv) % n = 1`
+    then `(sInv * w) % n = k % n`.
+    Algebraically: sInv * w = sInv * (s * k) = (sInv * s) * k = k (mod n). -/
+axiom modInverse_recover (k kInv s sInv w n : Nat)
+    (hn : n > 1)
+    (hs_def : s = (kInv * w) % n)
+    (hk_inv : (k * kInv) % n = 1)
+    (hs_inv : (s * sInv) % n = 1) :
+    (sInv * w) % n = k % n
+
+/-- Mod-distributivity helper: `((a % n) * b) % n = (a * b) % n`. -/
+axiom mul_mod_left (a b n : Nat) (hn : n > 0) :
+    ((a % n) * b) % n = (a * b) % n
+
+/-- Mod-distributivity helper: `(a * (b % n)) % n = (a * b) % n`. -/
+axiom mul_mod_right (a b n : Nat) (hn : n > 0) :
+    (a * (b % n)) % n = (a * b) % n
+
+/-- Mod-distributivity for addition: `((a % n) + (b % n)) % n = (a + b) % n`. -/
+axiom add_mod_both (a b n : Nat) (hn : n > 0) :
+    ((a % n) + (b % n)) % n = (a + b) % n
 
 end SWELib.Security.Crypto

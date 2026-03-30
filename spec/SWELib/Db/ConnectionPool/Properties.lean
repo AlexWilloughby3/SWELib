@@ -8,15 +8,30 @@ namespace SWELib.Db.ConnectionPool
 theorem createPool_initially_empty (params : ConnectionParameters) (config : PoolConfig)
     (state : PoolState) (h : createPool params config = pure state) :
     state.active = [] ∧ state.idle = [] ∧ state.totalCount = 0 := by
-  sorry -- Provable by unfolding createPool (pure literal value)
+  let s : Void IO.RealWorld := Classical.choice (Void.instNonempty (σ := IO.RealWorld))
+  have h' := congrFun h s
+  simp [createPool] at h'
+  injection h' with hstate _
+  subst hstate
+  simp
 
 /-- Theorem: Releasing a valid connection moves it from active to idle;
     pool size invariant is preserved. -/
 theorem releaseConnection_moves_to_idle (state : PoolState) (conn : Connection)
-    (hmem : conn ∈ state.active)
+    (_hmem : conn ∈ state.active)
     (state' : PoolState) (h : releaseConnection state conn = pure state') :
     conn ∉ state'.active ∧ state'.totalCount = state.totalCount := by
-  sorry -- Requires releaseConnection implementation
+  let s : Void IO.RealWorld := Classical.choice (Void.instNonempty (σ := IO.RealWorld))
+  have h' := congrFun h s
+  simp [releaseConnection] at h'
+  injection h' with hstate _
+  subst hstate
+  constructor
+  · intro hcontra
+    have hfalse : False := by
+      simpa using (List.mem_filter.mp hcontra).2
+    exact hfalse.elim
+  · simp
 
 /-- Theorem: Invalidating a connection removes it from the pool entirely,
     reducing totalCount by 1. -/
@@ -24,7 +39,21 @@ theorem invalidateConnection_reduces_count (state : PoolState) (conn : Connectio
     (hmem : conn ∈ state.active ∨ conn ∈ state.idle)
     (state' : PoolState) (h : invalidateConnection state conn = pure state') :
     state'.totalCount = state.totalCount - 1 := by
-  sorry -- Requires invalidateConnection implementation
+  let s : Void IO.RealWorld := Classical.choice (Void.instNonempty (σ := IO.RealWorld))
+  have h' := congrFun h s
+  by_cases hA : conn ∈ state.active
+  · simp [invalidateConnection, hA] at h'
+    injection h' with hstate _
+    subst hstate
+    rfl
+  · have hI : conn ∈ state.idle := by
+      rcases hmem with hmem | hmem
+      · contradiction
+      · exact hmem
+    simp [invalidateConnection, hA, hI] at h'
+    injection h' with hstate _
+    subst hstate
+    rfl
 
 /-- Theorem: Acquiring a connection either reuses idle (totalCount unchanged)
     or creates new (totalCount + 1 ≤ maximumPoolSize). -/
@@ -33,7 +62,10 @@ theorem getConnection_totalCount_bounded (state : PoolState)
     (h : getConnection state = pure (.ok (state', conn))) :
     state'.totalCount ≤ state'.config.maximumPoolSize ∧
     (state'.totalCount = state.totalCount ∨ state'.totalCount = state.totalCount + 1) := by
-  sorry -- Requires getConnection implementation
+  let s : Void IO.RealWorld := Classical.choice (Void.instNonempty (σ := IO.RealWorld))
+  have h' := congrFun h s
+  simp [getConnection] at h'
+  cases h'
 
 /-- Theorem: All valid PoolState values satisfy the capacity bound
     (ensured by the struct invariant, preserved by all operations). -/
@@ -47,7 +79,12 @@ theorem eviction_decreases_totalCount (state : PoolState) (currentTime : Nat)
     (state' : PoolState) (h : evictIdleConnections state currentTime = pure state') :
     state'.totalCount ≤ state.totalCount ∧
     state'.active = state.active := by
-  sorry -- Requires evictIdleConnections implementation
+  let s : Void IO.RealWorld := Classical.choice (Void.instNonempty (σ := IO.RealWorld))
+  have h' := congrFun h s
+  simp [evictIdleConnections] at h'
+  injection h' with hstate _
+  subst hstate
+  simp
 
 /-- Theorem: Connection validation timeout is always less than connection timeout. -/
 theorem validation_timeout_ordering (config : PoolConfig) :
@@ -79,6 +116,6 @@ theorem wait_list_constraint (state : PoolState) :
 /-- Safety property: A connection in active cannot simultaneously be in idle. -/
 theorem no_double_acquisition (state : PoolState) (conn : Connection) :
     conn ∈ state.active → conn ∉ state.idle := by
-  sorry -- Requires structural invariant that active ∩ idle = ∅
+  exact state.disjoint_ok conn
 
 end SWELib.Db.ConnectionPool

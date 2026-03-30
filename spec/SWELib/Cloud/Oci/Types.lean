@@ -79,7 +79,6 @@ structure ProcessConfig where
   rlimits : Array String := #[]  -- Simplified for now
   /-- Whether the terminal is attached. -/
   terminal : Bool := false
-  deriving Repr, Inhabited
 
 /-- Hook configuration. -/
 structure Hooks where
@@ -93,7 +92,6 @@ structure Hooks where
   poststart : Array (Unit → Except String Unit) := #[]
   /-- Post-stop hooks. -/
   poststop : Array (Unit → Except String Unit) := #[]
-  deriving Inhabited
 
 /-- Linux-specific configuration. -/
 structure LinuxConfig where
@@ -107,7 +105,6 @@ structure LinuxConfig where
   maskedPaths : Array String := #[]
   /-- Read-only paths. -/
   readonlyPaths : Array String := #[]
-  deriving Repr, Inhabited
 
 /-- Container configuration bundle. -/
 structure ContainerConfig where
@@ -125,7 +122,6 @@ structure ContainerConfig where
   hooks : Hooks := {}
   /-- Linux-specific configuration. -/
   linux : LinuxConfig := {}
-  deriving Repr, Inhabited
 
 /-- Container runtime state. -/
 structure ContainerState where
@@ -145,7 +141,6 @@ structure ContainerState where
   startedAt : Option SWELib.Basics.NumericDate := none
   /-- Stop timestamp (if stopped). -/
   stoppedAt : Option SWELib.Basics.NumericDate := none
-  deriving Repr, Inhabited
 
 /-- Check if a container configuration is valid. -/
 def ContainerConfig.isValid (config : ContainerConfig) : Bool :=
@@ -158,8 +153,8 @@ def ContainerConfig.isValid (config : ContainerConfig) : Bool :=
   versionOk && rootOk && processOk
 
 /-- Check if a container state transition is valid. -/
-def ContainerStatus.canTransition (from to : ContainerStatus) : Bool :=
-  match from, to with
+def ContainerStatus.canTransition (src dst : ContainerStatus) : Bool :=
+  match src, dst with
   | .creating, .created => true
   | .created, .running => true
   | .running, .stopped => true

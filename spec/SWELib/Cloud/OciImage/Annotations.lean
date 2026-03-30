@@ -26,6 +26,9 @@ Pre-defined keys following `org.opencontainers.image.*` convention:
 /-- Annotation key-value pairs (preserves order). -/
 def Annotations := List (String × String)
 
+instance : Repr Annotations where
+  reprPrec a n := @Repr.reprPrec (List (String × String)) instReprList (a : List (String × String)) n
+
 /-- Standard annotation: creation timestamp. -/
 def annotationCreated : String := "org.opencontainers.image.created"
 

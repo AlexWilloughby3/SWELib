@@ -225,7 +225,8 @@ theorem detectDrift_synced :
 /-- When there is drift, detection returns outOfSync. -/
 theorem detectDrift_outOfSync :
     computeDrift d a ≠ [] → detectDrift d (some a) = .outOfSync := by
-  sorry
+  intro h
+  simp [detectDrift, isSynced, List.isEmpty_iff, h]
 
 /-- Succeeded state always transitions to idle. -/
 theorem advanceReconciliation_succeeded_to_idle :

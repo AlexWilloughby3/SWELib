@@ -53,7 +53,7 @@ def RestErrorCondition.toStatusCode : RestErrorCondition → SWELib.Networking.H
     Section: RFC 9110 Section 15 -/
 theorem error_mapping_structural (cond : RestErrorCondition) :
     cond.toStatusCode ≠ SWELib.Networking.Http.StatusCode.ok := by
-  sorry
+  cases cond <;> decide
 
 /-- Precondition failure: 412 when If-Match condition is false.
 
@@ -61,7 +61,8 @@ theorem error_mapping_structural (cond : RestErrorCondition) :
 theorem precondition_failure (ifMatchPresent : Bool) (conditionSatisfied : Bool) :
     ifMatchPresent ∧ ¬conditionSatisfied →
     SWELib.Networking.Http.StatusCode.preconditionFailed = SWELib.Networking.Http.StatusCode.preconditionFailed := by
-  sorry
+  intro _
+  rfl
 
 /-- Conflict: 409 when PUT with outdated ETag.
 
@@ -69,7 +70,8 @@ theorem precondition_failure (ifMatchPresent : Bool) (conditionSatisfied : Bool)
 theorem conflict_outdated_etag (currentETag : Option String) (requestETag : Option String) :
     currentETag ≠ none ∧ requestETag ≠ none ∧ currentETag ≠ requestETag →
     SWELib.Networking.Http.StatusCode.conflict = SWELib.Networking.Http.StatusCode.conflict := by
-  sorry
+  intro _
+  rfl
 
 /-- Not acceptable: 406 when no representation matches Accept header.
 
@@ -77,7 +79,8 @@ theorem conflict_outdated_etag (currentETag : Option String) (requestETag : Opti
 theorem not_acceptable_no_match (supportedMediaTypes : List String) (acceptHeader : List String) :
     (∀ mt ∈ acceptHeader, mt ∉ supportedMediaTypes) →
     SWELib.Networking.Http.StatusCode.badRequest = SWELib.Networking.Http.StatusCode.badRequest := by
-  sorry
+  intro _
+  rfl
 
 /-- Method not allowed: 405 when method not in Allow header.
 
@@ -85,14 +88,16 @@ theorem not_acceptable_no_match (supportedMediaTypes : List String) (acceptHeade
 theorem method_not_allowed (method : String) (allowedMethods : List String) :
     method ∉ allowedMethods →
     SWELib.Networking.Http.StatusCode.methodNotAllowed = SWELib.Networking.Http.StatusCode.methodNotAllowed := by
-  sorry
+  intro _
+  rfl
 
 /-- Resource not found: 404 when URI doesn't map to resource.
 
     Section: RFC 9110 Section 15.5.5 (404 Not Found) -/
 theorem resource_not_found (uriExists : Bool) : ¬uriExists →
     SWELib.Networking.Http.StatusCode.notFound = SWELib.Networking.Http.StatusCode.notFound := by
-  sorry
+  intro _
+  rfl
 
 /-- Unsupported media type: 415 when Content-Type not supported.
 
@@ -100,7 +105,8 @@ theorem resource_not_found (uriExists : Bool) : ¬uriExists →
 theorem unsupported_media_type (contentType : String) (supportedTypes : List String) :
     contentType ∉ supportedTypes →
     SWELib.Networking.Http.StatusCode.unsupportedMediaType = SWELib.Networking.Http.StatusCode.unsupportedMediaType := by
-  sorry
+  intro _
+  rfl
 
 /-- Unprocessable content: 422 when request semantically invalid.
 
@@ -108,7 +114,8 @@ theorem unsupported_media_type (contentType : String) (supportedTypes : List Str
 theorem unprocessable_content (semanticError : Bool) :
     semanticError →
     SWELib.Networking.Http.StatusCode.unprocessableContent = SWELib.Networking.Http.StatusCode.unprocessableContent := by
-  sorry
+  intro _
+  rfl
 
 /-- Too many requests: 429 when rate limit exceeded.
 
@@ -116,6 +123,7 @@ theorem unprocessable_content (semanticError : Bool) :
 theorem too_many_requests (rateLimitExceeded : Bool) :
     rateLimitExceeded →
     SWELib.Networking.Http.StatusCode.tooManyRequests = SWELib.Networking.Http.StatusCode.tooManyRequests := by
-  sorry
+  intro _
+  rfl
 
 end SWELib.Networking.Rest

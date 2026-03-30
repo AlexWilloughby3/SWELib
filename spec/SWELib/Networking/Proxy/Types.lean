@@ -49,6 +49,8 @@ structure Proxy where
 
 /-- Basic properties about proxy types. -/
 theorem proxy_type_finite : ∃ (types : List ProxyType), ∀ (t : ProxyType), t ∈ types := by
-  sorry
+  refine ⟨[.forward, .reverse, .gateway, .tunnel], ?_⟩
+  intro t
+  cases t <;> simp
 
 end SWELib.Networking.Proxy

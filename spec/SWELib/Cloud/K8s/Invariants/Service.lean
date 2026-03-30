@@ -7,11 +7,13 @@ Authors: SWELib Contributors
 
 import SWELib.Cloud.K8s.Networking
 import SWELib.Cloud.K8s.Selection
+import SWELib.Cloud.K8s.Workloads
 
 namespace SWELib.Cloud.K8s.Invariants
 /-! Service-specific invariants (Kubernetes spec 7.5) -/
 open SWELib.Cloud.K8s.Networking
 open SWELib.Cloud.K8s.Selection
+open SWELib.Cloud.K8s.Workloads
 
 -- REQUIRES_HUMAN: INV-15: ClusterIP is immutable once assigned
 axiom inv15_clusterip_immutable :
@@ -25,9 +27,9 @@ axiom inv15_clusterip_immutable :
 axiom inv16_service_selector_matches :
     ∀ (svc : Service) (pods : List Pod),
     let selector := svc.spec.selector
-    let matchingPods := pods.filter (fun pod =>
+    let _matchingPods := pods.filter (fun pod =>
       selector.toList.all (fun (k, v) =>
-        pod.metadata.labels.find? k = some v))
+        pod.metadata.labels.get? k = some v))
     -- Service endpoints correspond to matching pods
     True  -- Simplified: would need endpoint tracking
 

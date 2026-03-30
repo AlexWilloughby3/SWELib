@@ -69,12 +69,12 @@ structure TwoPhaseCommitState where
 
 /-- 2PC coordinator algorithm. -/
 def twoPhaseCommitCoordinatorStep (st : TwoPhaseCommitState)
-    (msg : TwoPhaseCommitMessage) : TwoPhaseCommitState × List TwoPhaseCommitMessage :=
+    (_msg : TwoPhaseCommitMessage) : TwoPhaseCommitState × List TwoPhaseCommitMessage :=
   (st, [])
 
 /-- 2PC participant algorithm. -/
 def twoPhaseCommitParticipantStep (st : TwoPhaseCommitState)
-    (msg : TwoPhaseCommitMessage) : TwoPhaseCommitState × List TwoPhaseCommitMessage :=
+    (_msg : TwoPhaseCommitMessage) : TwoPhaseCommitState × List TwoPhaseCommitMessage :=
   (st, [])
 
 /-- 2PC blocking problem: if coordinator fails, participants may block. -/
@@ -113,7 +113,7 @@ structure TwoPhaseCommitInDatabases where
   deriving DecidableEq, Repr
 
 /-- Theorem: 2PC ensures atomicity (all or nothing). -/
-theorem twoPhaseCommit_atomicity (state : TwoPhaseCommitState) : True := by trivial
+theorem twoPhaseCommit_atomicity (_state : TwoPhaseCommitState) : True := by trivial
   -- All participants committed or all aborted
 
 /-- Theorem: 2PC ensures consistency across participants. -/

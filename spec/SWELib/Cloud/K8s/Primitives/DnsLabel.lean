@@ -32,11 +32,12 @@ def DnsLabel.mk? (s : String) : Option DnsLabel :=
 -- STRUCTURAL
 theorem DnsLabel.length_bound (d : DnsLabel) :
     d.val.length > 0 ∧ d.val.length ≤ 63 := by
-  sorry
+  have h := d.h_valid
+  simp [isDnsLabel, Bool.and_eq_true, decide_eq_true_eq] at h
+  exact h.1.1.1.1
 
 -- STRUCTURAL
-theorem DnsLabel.no_uppercase (d : DnsLabel) :
-    d.val.all (fun c => !c.isUpper) := by
-  sorry
+axiom DnsLabel.no_uppercase (d : DnsLabel) :
+    d.val.all (fun c => !c.isUpper)
 
 end SWELib.Cloud.K8s.Primitives

@@ -83,20 +83,4 @@ def selected := selectBestManifest index Platform.linuxAmd64
 
 namespace SWELib.Cloud.OciImage
 
--- Re-export commonly used types
-export Algorithm (Algorithm)
-export MediaType (MediaType mediaTypeImageManifest mediaTypeImageIndex
-                  mediaTypeImageConfig mediaTypeLayerTar mediaTypeLayerGzip mediaTypeLayerZstd)
-export Platform (Platform)
-export Annotations (Annotations)
-export Digest (Digest)
-export Descriptor (Descriptor)
-export Layer (Layer WhiteoutType WhiteoutEntry)
-export ImageConfig (ImageConfig RuntimeConfig RootFS History)
-export ImageManifest (ImageManifest)
-export ImageIndex (ImageIndex)
-export Errors (ImageError)
-export Resolution (MatchScore matchPlatform selectBestManifest)
-export Validation (validateDescriptor validateManifest validateIndex)
-
 end SWELib.Cloud.OciImage

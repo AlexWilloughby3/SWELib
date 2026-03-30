@@ -65,7 +65,7 @@ def unauthorizedMustHaveWWWAuthenticate (resp : Response) : Prop :=
 
 /-- RFC 9110 Section 11.6.3: A 407 Proxy Authentication Required response
     MUST include a Proxy-Authenticate header. -/
-def proxyAuthRequiredHasProxyAuthenticate (resp : Response) : Prop :=
+def authProxyAuthRequiredHasProxyAuthenticate (resp : Response) : Prop :=
   resp.status.code = 407 →
     resp.headers.contains FieldName.proxyAuthenticate = true
 
@@ -74,7 +74,7 @@ def proxyAuthRequiredHasProxyAuthenticate (resp : Response) : Prop :=
 /-- If a response requires WWW-Authenticate and the header is present,
     the authentication requirement is satisfied. -/
 theorem wwwAuth_satisfied (resp : Response)
-    (hCode : resp.status.code = 401)
+    (_ : resp.status.code = 401)
     (hHeader : resp.headers.contains FieldName.wwwAuthenticate = true) :
     unauthorizedMustHaveWWWAuthenticate resp := by
   intro _; exact hHeader

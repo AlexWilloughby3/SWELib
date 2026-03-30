@@ -21,7 +21,7 @@ axiom inv8_deletion_timestamp_monotonic :
     ∀ (pod : Pod),
     pod.metadata.deletionTimestamp.isNone →
     ∀ (params : DeleteParams) (result : Pod),
-    podDelete params = IO.pure (OperationResult.ok result) →
+    podDelete params = pure (OperationResult.ok result) →
     result.metadata.deletionTimestamp.isSome
 
 -- REQUIRES_HUMAN: INV-9: Deletion timestamp cannot be unset
@@ -29,7 +29,7 @@ axiom inv9_deletion_timestamp_final :
     ∀ (pod : Pod),
     pod.metadata.deletionTimestamp.isSome →
     ∀ (params : UpdateParams) (result : Pod),
-    podUpdate pod params = IO.pure (OperationResult.ok result) →
+    podUpdate params = pure (OperationResult.ok result) →
     result.metadata.deletionTimestamp = pod.metadata.deletionTimestamp
 
 -- REQUIRES_HUMAN: INV-10: Finalizers block deletion
@@ -41,6 +41,6 @@ axiom inv10_finalizers_block_deletion :
     ∀ (params : GetParams),
     params.name = pod.metadata.name →
     ∃ (result : Pod),
-    podGet params = IO.pure (OperationResult.ok result)
+    podGet params = pure (OperationResult.ok result)
 
 end SWELib.Cloud.K8s.Invariants

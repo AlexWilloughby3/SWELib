@@ -47,7 +47,7 @@ def JwtAlgorithm.fromString (s : String) : Option JwtAlgorithm :=
   | "PS256" => some .PS256
   | "PS384" => some .PS384
   | "PS512" => some .PS512
-  | _ => none
+  | _ => Option.none
 
 /-- Theorem: `toString` and `fromString` form a roundtrip. -/
 theorem JwtAlgorithm.toString_fromString (alg : JwtAlgorithm) :
@@ -58,8 +58,8 @@ theorem JwtAlgorithm.toString_fromString (alg : JwtAlgorithm) :
 theorem JwtAlgorithm.fromString_toString (s : String) (alg : JwtAlgorithm)
     (h : JwtAlgorithm.fromString s = some alg) :
     toString alg = s := by
-  simp only [JwtAlgorithm.fromString] at h
-  split at h <;> simp_all [JwtAlgorithm.toString]
+  cases alg <;> unfold JwtAlgorithm.fromString at h <;>
+    repeat (split at h <;> simp_all [JwtAlgorithm.toString])
 
 /-- Check if algorithm requires a key. -/
 def JwtAlgorithm.requiresKey : JwtAlgorithm → Bool

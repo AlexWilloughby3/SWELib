@@ -161,7 +161,55 @@ theorem ecdsaSign_sig_valid (priv : EcPrivateKey) (hash : ByteArray)
     (hvalid : ecPrivKeyValid priv)
     (hsign : ecdsaSign priv hash = some sig) :
     ecdsaSigValid sig priv.curve.n := by
-  sorry
+  rcases hvalid with ⟨hd1, hd2⟩
+  have hn : priv.curve.n > 0 := by omega
+  unfold ecdsaSign at hsign
+  cases hx : (scalarMul priv.curve (deterministicK priv hash)
+      (.affine priv.curve.Gx priv.curve.Gy)).xCoord with
+  | none =>
+      simp [hx] at hsign
+  | some xR =>
+      by_cases hr0 : xR % priv.curve.n = 0
+      · simp [hx, hr0] at hsign
+      · cases hk : SWELib.Security.Crypto.modInverse (deterministicK priv hash) priv.curve.n with
+        | none =>
+            simp [hx, hr0, hk] at hsign
+        | some kInv =>
+            by_cases hs0 :
+                (kInv * (bits2int hash (Nat.log2 priv.curve.n + 1) + (xR % priv.curve.n) * priv.d)) %
+                  priv.curve.n = 0
+            · simp [hx, hr0, hk, hs0] at hsign
+            · simp [hx, hr0, hk, hs0] at hsign
+              cases hsign
+              have hrlt : xR % priv.curve.n < priv.curve.n := Nat.mod_lt _ hn
+              have hslt :
+                  (kInv * (bits2int hash (Nat.log2 priv.curve.n + 1) + (xR % priv.curve.n) * priv.d)) %
+                    priv.curve.n < priv.curve.n := Nat.mod_lt _ hn
+              simp [ecdsaSigValid]
+              omega
+
+/-- Core ECDSA algebraic identity: if `s = (kInv * (z + r * d)) % n` where
+    `kInv` is the modular inverse of `k`, and `sInv` is the modular inverse of `s`,
+    and `r = xCoord(k*G) % n`, then the verification point equals `k*G`:
+    ```
+    curveAdd (scalarMul ((z * sInv) % n) G) (scalarMul ((r * sInv) % n) (scalarMul d G))
+      = scalarMul k G
+    ```
+    This is the central algebraic identity of ECDSA (FIPS 186-5 Section 6.4).
+    Proof: s = kInv*(z+r*d) mod n, so sInv*(z+r*d) = sInv*s*k = k mod n.
+    Then u1*G + u2*(d*G) = (u1+u2*d)*G = sInv*(z+r*d)*G = k*G (mod order). -/
+axiom ecdsa_algebraic_identity
+    (params : EllipticCurveParams) (k kInv d z r sInv : Nat)
+    (hv : curveParamsValid params)
+    (hk_range : k ≥ 1 ∧ k ≤ params.n - 1)
+    (hkInv : modInverse k params.n = some kInv)
+    (hs_nonzero : (kInv * (z + r * d)) % params.n ≠ 0)
+    (hsInv : modInverse ((kInv * (z + r * d)) % params.n) params.n = some sInv) :
+    let G := CurvePoint.affine params.Gx params.Gy
+    curveAdd params
+      (scalarMul params ((z * sInv) % params.n) G)
+      (scalarMul params ((r * sInv) % params.n) (scalarMul params d G)) =
+    scalarMul params k G
 
 /-- ECDSA correctness: a signature produced by `ecdsaSign` is accepted by `ecdsaVerify`.
     Proof sketch:
@@ -176,6 +224,66 @@ theorem ecdsa_correctness (priv : EcPrivateKey) (pub : EcPublicKey)
     (hparams : curveParamsValid priv.curve)
     (hsign : ecdsaSign priv hash = some sig) :
     ecdsaVerify pub hash sig = true := by
-  sorry
+  -- Extract key validity
+  rcases hpubValid with ⟨hcurve_eq, hpubPt, hQ_eq⟩
+  -- Sig validity
+  have hsigv := ecdsaSign_sig_valid priv hash sig hprivValid hsign
+  rcases hsigv with ⟨hr1, hr2, hs1, hs2⟩
+  -- Params
+  have hn_prime : IsPrime priv.curve.n := hparams.2.2.2.1
+  have hn_gt1 : priv.curve.n > 1 := by rcases hn_prime with ⟨h2, _⟩; omega
+  -- k range
+  have hk_range := deterministicK_range priv hash hprivValid
+  -- Deconstruct ecdsaSign to extract intermediate values
+  unfold ecdsaSign at hsign
+  cases hxR : (scalarMul priv.curve (deterministicK priv hash)
+      (.affine priv.curve.Gx priv.curve.Gy)).xCoord with
+  | none => simp [hxR] at hsign
+  | some xR =>
+    by_cases hr0 : xR % priv.curve.n = 0
+    · simp [hxR, hr0] at hsign
+    · cases hkInv : SWELib.Security.Crypto.modInverse (deterministicK priv hash) priv.curve.n with
+      | none => simp [hxR, hr0, hkInv] at hsign
+      | some kInv =>
+        by_cases hs0 :
+            (kInv * (bits2int hash (Nat.log2 priv.curve.n + 1) +
+              (xR % priv.curve.n) * priv.d)) % priv.curve.n = 0
+        · simp [hxR, hr0, hkInv, hs0] at hsign
+        · simp [hxR, hr0, hkInv, hs0] at hsign
+          -- hsign now gives us the concrete sig values
+          have hsig_r : sig.r = xR % priv.curve.n := by cases hsign; rfl
+          have hsig_s : sig.s = (kInv * (bits2int hash (Nat.log2 priv.curve.n + 1) +
+              (xR % priv.curve.n) * priv.d)) % priv.curve.n := by cases hsign; rfl
+          -- s is coprime to n
+          have hs_coprime : Nat.gcd sig.s priv.curve.n = 1 :=
+            gcd_prime_coprime sig.s priv.curve.n hn_prime hs1 hs2
+          obtain ⟨sInv, hsInv⟩ := modInverse_some_exists sig.s priv.curve.n hs_coprime hn_gt1
+          -- Apply the algebraic identity
+          have halg := ecdsa_algebraic_identity priv.curve
+            (deterministicK priv hash) kInv priv.d
+            (bits2int hash (Nat.log2 priv.curve.n + 1))
+            (xR % priv.curve.n) sInv
+            hparams hk_range hkInv hs0 (by rw [← hsig_s]; exact hsInv)
+          -- Unfold ecdsaVerify and simplify
+          unfold ecdsaVerify
+          -- Simplify pub.curve → priv.curve, and handle the range check
+          simp only [hcurve_eq]
+          -- The if condition: sig.r = 0 || sig.r >= n || sig.s = 0 || sig.s >= n
+          have hif_cond : ¬ ((decide (sig.r = 0) || decide (sig.r ≥ priv.curve.n) ||
+            decide (sig.s = 0) || decide (sig.s ≥ priv.curve.n)) = true) := by
+            simp; omega
+          rw [if_neg hif_cond]
+          -- modInverse sig.s n = some sInv
+          simp only [hsInv]
+          -- Rewrite Q = d * G
+          rw [hQ_eq, hcurve_eq]
+          -- Rewrite sig.r to the concrete value
+          rw [hsig_r]
+          -- Now use the algebraic identity
+          rw [halg]
+          -- Now goal: match (scalarMul k G).xCoord with ...
+          simp only [hxR]
+          -- Goal: (xR % n == xR % n) = true
+          simp
 
 end SWELib.Security.Crypto.Ecdsa

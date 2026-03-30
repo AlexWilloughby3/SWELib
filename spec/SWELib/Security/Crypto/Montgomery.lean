@@ -73,6 +73,11 @@ def decodeLittleEndian (bs : ByteArray) : Nat :=
 def encodeLittleEndian (n : Nat) (len : Nat) : ByteArray :=
   ⟨Array.ofFn (fun (i : Fin len) => ((n >>> (i.val * 8)) &&& 0xFF).toUInt8)⟩
 
+/-- Little-endian encoding produces exactly the requested number of bytes. -/
+theorem encodeLittleEndian_size (n len : Nat) :
+    (encodeLittleEndian n len).size = len := by
+  simp [encodeLittleEndian, ByteArray.size]
+
 -- ---------------------------------------------------------------------------
 -- Scalar clamping (RFC 7748 Section 5)
 -- ---------------------------------------------------------------------------
@@ -151,6 +156,24 @@ axiom x25519_dh_commutativity (a b : ByteArray) (ha : a.size = 32) (hb : b.size 
     x25519 a (x25519 b (encodeLittleEndian x25519Params.basePoint 32)) =
     x25519 b (x25519 a (encodeLittleEndian x25519Params.basePoint 32))
 
+private theorem u8_and_idem_25519 (x : UInt8) : (x &&& 248) &&& 248 = x &&& 248 := by
+  apply UInt8.toBitVec_inj.mp
+  simp [UInt8.toBitVec_and, BitVec.and_assoc]
+
+private theorem u8_andor_idem_25519 (x : UInt8) :
+    (((x &&& 127) ||| 64) &&& 127) ||| 64 = (x &&& 127) ||| 64 := by
+  apply UInt8.toBitVec_inj.mp
+  simp [UInt8.toBitVec_and, UInt8.toBitVec_or, BitVec.and_or_distrib_right,
+    BitVec.and_assoc, BitVec.or_assoc]
+
+private theorem u8_and_idem_448 (x : UInt8) : (x &&& 252) &&& 252 = x &&& 252 := by
+  apply UInt8.toBitVec_inj.mp
+  simp [UInt8.toBitVec_and, BitVec.and_assoc]
+
+private theorem u8_or_idem_448 (x : UInt8) : (x ||| 128) ||| 128 = x ||| 128 := by
+  apply UInt8.toBitVec_inj.mp
+  simp [UInt8.toBitVec_or, BitVec.or_assoc]
+
 -- ---------------------------------------------------------------------------
 -- Theorems
 -- ---------------------------------------------------------------------------
@@ -160,12 +183,48 @@ axiom x25519_dh_commutativity (a b : ByteArray) (ha : a.size = 32) (hb : b.size 
     Proof: bit masking and setting operations are idempotent. -/
 theorem clampScalar25519_idempotent (k : ByteArray) (hk : k.size ≥ 32) :
     clampScalar25519 (clampScalar25519 k) = clampScalar25519 k := by
-  sorry
+  cases k with
+  | mk data =>
+      change data.size ≥ 32 at hk
+      have h0 : 0 < data.size := by omega
+      have h31 : 31 < data.size := by omega
+      apply ByteArray.ext
+      apply Array.ext_getElem?
+      intro i
+      simp [clampScalar25519, ByteArray.size, ByteArray.set!, ByteArray.get!,
+        Nat.not_lt.mpr hk, Array.set!, Array.setIfInBounds, h0, h31]
+      by_cases hi0 : i = 0 <;> by_cases hi31 : i = 31
+      · simp [hi0, u8_and_idem_25519, u8_andor_idem_25519]
+      · have hi31' : 31 ≠ i := by simpa [eq_comm] using hi31
+        simp [hi0, u8_and_idem_25519, u8_andor_idem_25519]
+      · have hi0' : 0 ≠ i := by simpa [eq_comm] using hi0
+        simp [hi31, u8_and_idem_25519, u8_andor_idem_25519]
+      · have hi0' : 0 ≠ i := by simpa [eq_comm] using hi0
+        have hi31' : 31 ≠ i := by simpa [eq_comm] using hi31
+        simp [hi0', hi31', u8_and_idem_25519, u8_andor_idem_25519]
 
 /-- Clamping X448 scalars is idempotent. -/
 theorem clampScalar448_idempotent (k : ByteArray) (hk : k.size ≥ 56) :
     clampScalar448 (clampScalar448 k) = clampScalar448 k := by
-  sorry
+  cases k with
+  | mk data =>
+      change data.size ≥ 56 at hk
+      have h0 : 0 < data.size := by omega
+      have h55 : 55 < data.size := by omega
+      apply ByteArray.ext
+      apply Array.ext_getElem?
+      intro i
+      simp [clampScalar448, ByteArray.size, ByteArray.set!, ByteArray.get!,
+        Nat.not_lt.mpr hk, Array.set!, Array.setIfInBounds, h0, h55]
+      by_cases hi0 : i = 0 <;> by_cases hi55 : i = 55
+      · simp [hi0, u8_and_idem_448, u8_or_idem_448]
+      · have hi55' : 55 ≠ i := by simpa [eq_comm] using hi55
+        simp [hi0, u8_and_idem_448, u8_or_idem_448]
+      · have hi0' : 0 ≠ i := by simpa [eq_comm] using hi0
+        simp [hi55, u8_and_idem_448, u8_or_idem_448]
+      · have hi0' : 0 ≠ i := by simpa [eq_comm] using hi0
+        have hi55' : 55 ≠ i := by simpa [eq_comm] using hi55
+        simp [hi0', hi55', u8_and_idem_448, u8_or_idem_448]
 
 /-- The X25519 base point encodes as the byte 9 followed by 31 zero bytes (little-endian).
     (RFC 7748 Section 6.1) -/

@@ -58,7 +58,7 @@ instance : ToString IPFamily where
 /-- Service specification -/
 structure ServiceSpec where
   ports : List ServicePort := []
-  selector : Std.HashMap LabelKey LabelValue := Std.HashMap.empty
+  selector : Std.HashMap LabelKey LabelValue := ∅
   clusterIP : Option String := none  -- "None" for headless
   clusterIPs : List String := []
   type : ServiceType := ServiceType.ClusterIP
@@ -73,7 +73,6 @@ structure ServiceSpec where
   sessionAffinityConfig : Option String := none  -- Simplified
   ipFamilies : List IPFamily := []
   ipFamilyPolicy : Option String := none
-  deriving DecidableEq
 
 /-- Check if a service is headless -/
 def ServiceSpec.isHeadless (spec : ServiceSpec) : Bool :=
