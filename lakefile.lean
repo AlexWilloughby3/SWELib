@@ -14,6 +14,11 @@ lean_lib SWELibImpl where
   moreLinkArgs := #["-lssl", "-lcrypto", "-lpq", "-lcurl", "-lssh2"]
   extraDepTargets := #[`swelib_ffi]
 
+private def pkgConfigCflags (lib : String) : IO (Array String) := do
+  let out ← IO.Process.output { cmd := "pkg-config", args := #["--cflags-only-I", lib] }
+  if out.exitCode != 0 then return #[]
+  return out.stdout.trim.splitOn " " |>.filter (· != "") |>.toArray
+
 extern_lib swelib_ffi pkg := do
   let ffiDir := pkg.dir / "impl" / "ffi"
   let buildDir := pkg.buildDir / "ffi"
@@ -26,14 +31,14 @@ extern_lib swelib_ffi pkg := do
     "swelib_libssh",
     "swelib_docker"
   ]
+  let sslInc ← pkgConfigCflags "openssl"
+  let pqInc ← pkgConfigCflags "libpq"
+  let ssh2Inc ← pkgConfigCflags "libssh2"
   let flags := #[
     "-Wno-deprecated-declarations",
     "-Wno-int-conversion",
-    "-I", leanIncDir.toString,
-    "-I", "/opt/homebrew/opt/openssl@3/include",
-    "-I", "/opt/homebrew/include/postgresql@14",
-    "-I", "/opt/homebrew/opt/libssh2/include"
-  ]
+    "-I", leanIncDir.toString
+  ] ++ sslInc ++ pqInc ++ ssh2Inc
   let libFile := buildDir / "libswelib_ffi.a"
   Job.async do
     IO.FS.createDirAll buildDir
