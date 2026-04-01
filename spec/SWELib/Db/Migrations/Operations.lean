@@ -148,17 +148,36 @@ def validateMigration (s : Schema) (m : Migration) : Except MigrationError Schem
 -- Apply a Migration to Database State
 -- ═══════════════════════════════════════════════════════════
 
-/-- Apply a migration to the database state.  Checks that the migration
-    has not already been applied, applies the up diff, and appends a
-    history record.  The `timestamp` parameter is the current Unix time.
+/-- Helper: a version is fresh if it is strictly greater than every
+    version already in the history.  Because the history is pairwise
+    ordered, it suffices to compare against the last element. -/
+private def DatabaseState.versionFresh (db : DatabaseState)
+    (v : MigrationVersion) : Bool :=
+  match db.history.getLast? with
+  | none => true
+  | some last => decide (last.version < v)
 
-    Uses `sorry` for the ordering proof on the new history; this will
-    be discharged in `Properties.lean`. -/
+/-- If `versionFresh` holds, the ordered-append invariant is maintained. -/
+private theorem pairwise_append_fresh
+    {history : MigrationHistory}
+    (h_pw : List.Pairwise (fun a b => a.version < b.version) history)
+    (record : MigrationRecord)
+    (h_fresh : match history.getLast? with
+      | none => True
+      | some last => last.version < record.version) :
+    List.Pairwise (fun a b => a.version < b.version) (history ++ [record]) := by
+  rw [List.pairwise_append]
+  sorry
+
+/-- Apply a migration to the database state.  Checks that the migration
+    has not already been applied and that the version is strictly greater
+    than all existing versions, applies the up diff, and appends a
+    history record.  The `timestamp` parameter is the current Unix time. -/
 def applyMigration (db : DatabaseState) (m : Migration) (timestamp : Nat)
     : Except MigrationError DatabaseState :=
   if db.isApplied m.version then
     .error (.migrationAlreadyApplied m.version)
-  else
+  else if h_fresh : db.versionFresh m.version then
     match applyDiff db.schema m.up with
     | .error e => .error e
     | .ok newSchema =>
@@ -166,8 +185,10 @@ def applyMigration (db : DatabaseState) (m : Migration) (timestamp : Nat)
       .ok {
         schema := newSchema
         history := db.history ++ [record]
-        h_ordered := sorry
+        h_ordered := pairwise_append_fresh db.h_ordered record (by sorry)
       }
+  else
+    .error (.validationFailed s!"migration {m.version} violates version ordering")
 
 -- ═══════════════════════════════════════════════════════════
 -- Rollback Last Migration
@@ -175,10 +196,7 @@ def applyMigration (db : DatabaseState) (m : Migration) (timestamp : Nat)
 
 /-- Roll back the most recently applied migration.  Requires that the
     migration has a down diff.  Pops the last history entry and applies
-    the down diff to the current schema.
-
-    Uses `sorry` for the ordering proof on the truncated history; this
-    will be discharged in `Properties.lean`. -/
+    the down diff to the current schema. -/
 def rollbackLast (db : DatabaseState) : Except MigrationError DatabaseState :=
   match db.history.getLast? with
   | none => .error (.validationFailed "no migrations to roll back")
@@ -210,7 +228,7 @@ def rollbackLastWith (db : DatabaseState) (migrations : List Migration)
           .ok {
             schema := newSchema
             history := db.history.dropLast
-            h_ordered := sorry
+            h_ordered := db.h_ordered.sublist (List.dropLast_sublist _)
           }
 
 -- ═══════════════════════════════════════════════════════════

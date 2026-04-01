@@ -148,14 +148,26 @@ theorem privileged_same_namespaces (config : DockerRunConfig) :
 
 /-! ## Resource Limit Mapping -/
 
-/-- Memory limit from Docker config maps to OCI correctly. -/
+/-- Memory limit from Docker config is present in OCI resource limits. -/
 theorem memory_limit_preserved (config : DockerRunConfig)
-    (_hMem : config.memory > 0) :
-    let ociConfig := toOciConfig config "/bundle"
-    -- The memory limit is not lost in translation
-    -- (it's carried in the LinuxConfig.cgroups, which Docker creates externally)
-    ociConfig.linux.cgroups.path = "/" := by
-  simp [toOciConfig, toLinuxConfig]
+    (hMem : config.memory > 0) :
+    CgroupLimit.memory config.memory ∈ (toLinuxConfig config).resources.toList := by
+  simp only [toLinuxConfig, toResourceLimits, hMem, ite_true]
+  sorry
+
+/-- CPU quota from Docker config is present in OCI resource limits. -/
+theorem cpu_quota_preserved (config : DockerRunConfig)
+    (hCpu : config.cpuQuota > 0) :
+    CgroupLimit.cpuMax config.cpuQuota config.cpuPeriod ∈ (toLinuxConfig config).resources.toList := by
+  simp only [toLinuxConfig, toResourceLimits, hCpu, ite_true]
+  sorry
+
+/-- PIDs limit from Docker config is present in OCI resource limits. -/
+theorem pids_limit_preserved (config : DockerRunConfig)
+    (hPids : config.pidsLimit > 0) :
+    CgroupLimit.pidCount config.pidsLimit ∈ (toLinuxConfig config).resources.toList := by
+  simp only [toLinuxConfig, toResourceLimits, hPids, ite_true]
+  sorry
 
 /-! ## Isolation Guarantees -/
 

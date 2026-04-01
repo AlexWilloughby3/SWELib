@@ -143,14 +143,21 @@ private def executeTransition (h : VMHandle)
 
 /-- Create a new GCE VM instance.
     Returns a `VMHandle` tracking the instance. The `gcloud` command blocks
-    until the instance is running. -/
+    until the instance is running.
+    `metadata` is an array of key-value pairs passed via `--metadata`. -/
 def createInstance (project zone name machineType : String)
     (imageFamily : String := "debian-12")
     (imageProject : String := "debian-cloud")
-    (diskSizeGb : Nat := 10) : IO VMHandle := do
+    (diskSizeGb : Nat := 10)
+    (metadata : Array (String × String) := #[]) : IO VMHandle := do
   let statusRef ← IO.mkRef SWELib.OS.Isolation.VMStatus.pending
   let h : VMHandle := { project, zone, name, status := statusRef }
-  let _ ← runGcloud [
+  let metadataArgs :=
+    if metadata.isEmpty then []
+    else
+      let pairs := metadata.toList.map fun (k, v) => s!"{k}={v}"
+      ["--metadata", ",".intercalate pairs]
+  let _ ← runGcloud ([
     "compute", "instances", "create", name,
     "--project", project,
     "--zone", zone,
@@ -159,7 +166,7 @@ def createInstance (project zone name machineType : String)
     "--image-project", imageProject,
     "--boot-disk-size", s!"{diskSizeGb}GB",
     "--format=json"
-  ]
+  ] ++ metadataArgs)
   -- gcloud blocks until RUNNING
   h.status.set .running
   return h
@@ -231,5 +238,47 @@ def refreshStatus (h : VMHandle) : IO SWELib.OS.Isolation.VMStatus := do
   let status ← fetchStatus h.project h.zone h.name
   h.status.set status
   return status
+
+/-! ## SSH -/
+
+/-- SSH into a running VM and execute a command, returning the result.
+    Validates the VM is in `running` state (the `sshPrecondition` from the spec)
+    before executing.
+
+    Maps to `gcloud compute ssh INSTANCE --project=PROJECT --zone=ZONE --command=CMD`.
+
+    Note: Interactive SSH (no command) is not supported from Lean; always provide
+    a command to run. -/
+def sshInstance (h : VMHandle)
+    (command : String)
+    (config : SWELib.OS.Isolation.SshConfig := {})
+    : IO SWELib.OS.Isolation.SshResult := do
+  let current ← h.status.get
+  unless current == .running do
+    throw <| IO.userError
+      s!"SSH requires VM to be running, but current status is {vmStatusToString current}"
+  let mut args : List String := [
+    "compute", "ssh", h.name,
+    "--project", h.project,
+    "--zone", h.zone,
+    "--command", command
+  ]
+  if config.internalIp then
+    args := args ++ ["--internal-ip"]
+  if config.tunnelThroughIap then
+    args := args ++ ["--tunnel-through-iap"]
+  if let some keyFile := config.sshKeyFile then
+    args := args ++ ["--ssh-key-file", keyFile]
+  if !config.strictHostKeyChecking then
+    args := args ++ ["--strict-host-key-checking=no"]
+  let result ← IO.Process.output {
+    cmd := "gcloud"
+    args := args.toArray
+  }
+  return {
+    stdout := result.stdout
+    stderr := result.stderr
+    exitCode := result.exitCode
+  }
 
 end SWELibImpl.Cloud.GceVm

@@ -115,6 +115,36 @@ inductive VMAction (α : Type) where
   | service : α → VMAction α
   deriving Repr
 
+/-! ## VM SSH Types -/
+
+/-- Configuration for `gcloud compute ssh` connections.
+    References: https://cloud.google.com/sdk/gcloud/reference/compute/ssh -/
+structure SshConfig where
+  /-- Remote command to execute (non-interactive). If `none`, would open a shell. -/
+  command : Option String := none
+  /-- Use internal IP address instead of external. -/
+  internalIp : Bool := false
+  /-- Tunnel through Identity-Aware Proxy. -/
+  tunnelThroughIap : Bool := false
+  /-- SSH key file path override. -/
+  sshKeyFile : Option String := none
+  /-- Disable strict host key checking. -/
+  strictHostKeyChecking : Bool := true
+  deriving Repr
+
+/-- Result of a non-interactive SSH command execution. -/
+structure SshResult where
+  /-- Standard output from the remote command. -/
+  stdout : String
+  /-- Standard error from the remote command. -/
+  stderr : String
+  /-- Exit code of the remote command. -/
+  exitCode : UInt32
+  deriving Repr
+
+/-- SSH is a service-level operation: requires VM to be running, does not change state. -/
+def sshPrecondition (status : VMStatus) : Prop := status = .running
+
 /-! ## Bare Metal Types -/
 
 /-- Bare metal provisioning/operational lifecycle states (MAAS model). -/

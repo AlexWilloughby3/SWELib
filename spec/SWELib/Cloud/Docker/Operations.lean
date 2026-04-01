@@ -176,10 +176,18 @@ def volumesToOciMounts (vols : Array VolumeMount) : Array Mount :=
       fstype := "bind"
       options := if vm.readOnly then #["ro", "rbind"] else #["rbind"] }
 
+/-- Compute resource limits from Docker config as OCI cgroup limits. -/
+def toResourceLimits (config : DockerRunConfig) : Array CgroupLimit :=
+  let mem := if config.memory > 0 then #[CgroupLimit.memory config.memory] else #[]
+  let cpu := if config.cpuQuota > 0 then #[CgroupLimit.cpuMax config.cpuQuota config.cpuPeriod] else #[]
+  let pids := if config.pidsLimit > 0 then #[CgroupLimit.pidCount config.pidsLimit] else #[]
+  mem ++ cpu ++ pids
+
 /-- Generate the OCI LinuxConfig from Docker run config. -/
 def toLinuxConfig (config : DockerRunConfig) : LinuxConfig :=
   { namespaces := effectiveNamespaces config
     cgroups := ⟨"/"⟩  -- Docker creates cgroup at /docker/<container-id>
+    resources := toResourceLimits config
     seccomp := if config.privileged then none
                else if config.securityOpt.any (· == "seccomp=unconfined")
                then none
@@ -212,8 +220,9 @@ def toOciConfig (config : DockerRunConfig) (_bundlePath : String) : ContainerCon
 
 /-! ## Docker CLI Operations -/
 
-/-- AXIOM: Docker generates a unique container ID (64-char hex sha256). -/
-axiom generateContainerId : String
+/-- AXIOM: Docker generates a unique container ID (64-char hex sha256).
+    The ID must not collide with any existing container in the state. -/
+axiom generateContainerId (state : DockerState) : { id : String // !state.containers.contains id }
 
 /-- `docker pull <imageRef>` — Pull an image from a registry.
     Adds the image to the local store. -/
@@ -248,7 +257,7 @@ noncomputable def dockerCreate (state : DockerState) (config : DockerRunConfig) 
   let merged := mergeWithImageDefaults config imageInfo
 
   -- Generate container ID
-  let containerId := generateContainerId
+  let ⟨containerId, _⟩ := generateContainerId state
 
   -- Generate OCI config and create via OCI runtime
   let bundlePath := s!"/var/lib/docker/containers/{containerId}"
@@ -279,8 +288,8 @@ noncomputable def dockerStart (state : DockerState) (idOrName : String) :
     | some i => .ok i
     | none => .error (.containerNotFound idOrName)
 
-  if info.state.status != .created then
-    throw (.invalidArg s!"container {idOrName} is not in created state")
+  if info.state.status != .created && info.state.status != .exited then
+    throw (.invalidArg s!"container {idOrName} is not in created or exited state")
 
   match Oci.start state.ociTable info.id with
   | .error ociErr => throw (.ociError ociErr)
@@ -297,9 +306,9 @@ noncomputable def dockerStart (state : DockerState) (idOrName : String) :
       ociTable := newOciTable }
 
 /-- `docker stop <id> [-t timeout]` — Stop a running container.
-    Sends SIGTERM, then SIGKILL after timeout. -/
+    Sends SIGTERM, waits up to `timeout` seconds, then SIGKILL. -/
 noncomputable def dockerStop (state : DockerState) (idOrName : String)
-    (_timeout : Nat := 10) : Except DockerCliError DockerState := do
+    (timeout : Nat := 10) : Except DockerCliError DockerState := do
   let info ← match state.findContainer idOrName with
     | some i => .ok i
     | none => .error (.containerNotFound idOrName)
@@ -307,6 +316,9 @@ noncomputable def dockerStop (state : DockerState) (idOrName : String)
   if !info.state.running then
     throw (.containerNotRunning idOrName)
 
+  -- Send SIGTERM; if process doesn't exit within `timeout` seconds, SIGKILL follows.
+  -- In the pure spec model we collapse the two-phase stop into a single transition.
+  let _ := timeout  -- timeout governs the SIGTERM→SIGKILL grace period
   match Oci.kill state.ociTable info.id .SIGTERM with
   | .error ociErr => throw (.ociError ociErr)
   | .ok (newOciTable, _) =>
@@ -339,7 +351,7 @@ noncomputable def dockerRm (state : DockerState) (idOrName : String)
   | .error ociErr => throw (.ociError ociErr)
   | .ok newOciTable =>
     return { state' with
-      containers := state'.containers.remove info.id
+      containers := state'.containers.remove info.id info.name
       ociTable := newOciTable }
 
 /-- `docker run [flags] <image> [command]` — Create and start a container.
@@ -371,5 +383,60 @@ def dockerInspect (state : DockerState) (idOrName : String) :
   match state.findContainer idOrName with
   | some info => .ok info
   | none => .error (.containerNotFound idOrName)
+
+/-- `docker pause <id>` — Pause a running container. -/
+noncomputable def dockerPause (state : DockerState) (idOrName : String) :
+    Except DockerCliError DockerState := do
+  let info ← match state.findContainer idOrName with
+    | some i => .ok i
+    | none => .error (.containerNotFound idOrName)
+
+  if !info.state.running then
+    throw (.containerNotRunning idOrName)
+
+  let updatedInfo := { info with
+    state := { info.state with
+      status := .paused
+      running := false } }
+  return { state with containers := state.containers.insert updatedInfo }
+
+/-- `docker unpause <id>` — Unpause a paused container. -/
+noncomputable def dockerUnpause (state : DockerState) (idOrName : String) :
+    Except DockerCliError DockerState := do
+  let info ← match state.findContainer idOrName with
+    | some i => .ok i
+    | none => .error (.containerNotFound idOrName)
+
+  if info.state.status != .paused then
+    throw (.invalidArg s!"container {idOrName} is not paused")
+
+  let updatedInfo := { info with
+    state := { info.state with
+      status := .running
+      running := true } }
+  return { state with containers := state.containers.insert updatedInfo }
+
+/-- `docker kill <id> [-s signal]` — Send a signal to a running container.
+    Unlike `docker stop`, this does not wait for graceful shutdown. -/
+noncomputable def dockerKill (state : DockerState) (idOrName : String)
+    (signal : Signal := .SIGKILL) : Except DockerCliError DockerState := do
+  let info ← match state.findContainer idOrName with
+    | some i => .ok i
+    | none => .error (.containerNotFound idOrName)
+
+  if !info.state.running && info.state.status != .paused then
+    throw (.containerNotRunning idOrName)
+
+  match Oci.kill state.ociTable info.id signal with
+  | .error ociErr => throw (.ociError ociErr)
+  | .ok (newOciTable, _) =>
+    let updatedInfo := { info with
+      state := { info.state with
+        status := .exited
+        running := false
+        pid := 0 } }
+    return { state with
+      containers := state.containers.insert updatedInfo
+      ociTable := newOciTable }
 
 end SWELib.Cloud.Docker

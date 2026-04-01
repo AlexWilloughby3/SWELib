@@ -57,28 +57,28 @@ theorem container_simulates_distilled :
         subst hMap
         simp [containerStateMap]
         obtain ⟨rfl, rfl⟩ := hTr
-        exact ⟨rfl, rfl⟩
+        rfl
       | kill sig =>
         simp [containerActionMap] at hMap
         subst hMap
         simp [containerStateMap]
         obtain ⟨h, rfl⟩ := hTr
         cases h with
-        | inl h => subst h; exact ⟨rfl, rfl⟩
-        | inr h => subst h; exact ⟨sorry, rfl⟩  -- created→stopped: created is stopped
+        | inl h => subst h; rfl
+        | inr h => subst h; rfl
       | create => simp [containerActionMap] at hMap
       | pause =>
         simp [containerActionMap] at hMap
         subst hMap
         simp [containerStateMap]
         obtain ⟨rfl, rfl⟩ := hTr
-        exact ⟨rfl, rfl⟩
+        rfl
       | resume =>
         simp [containerActionMap] at hMap
         subst hMap
         simp [containerStateMap]
         obtain ⟨rfl, rfl⟩ := hTr
-        exact ⟨rfl, rfl⟩
+        rfl
       | delete => simp [containerActionMap] at hMap
     | service a =>
       simp [containerActionMap] at hMap
@@ -152,19 +152,19 @@ theorem vm_simulates_distilled :
       cases l with
       | stop =>
         simp [vmActionMap] at hMap; subst hMap
-        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | suspend =>
         simp [vmActionMap] at hMap; subst hMap
-        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | bootComplete =>
         simp [vmActionMap] at hMap; subst hMap
-        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | repairStarted =>
         simp [vmActionMap] at hMap; subst hMap
-        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | repairComplete =>
         simp [vmActionMap] at hMap; subst hMap
-        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [vmStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | create => simp [vmActionMap] at hMap
       | start => simp [vmActionMap] at hMap
       | resume => simp [vmActionMap] at hMap
@@ -247,24 +247,24 @@ theorem bare_metal_simulates_distilled :
       cases p with
       | powerOn =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | powerOff =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | reinstall =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
     | provision p =>
       cases p with
       | release =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | markBroken =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨_, rfl⟩ := hTr; exact ⟨sorry, rfl⟩
+        simp [bareMetalStateMap]; obtain ⟨_, rfl⟩ := hTr; rfl
       | retire =>
         simp [bareMetalActionMap] at hMap; subst hMap
-        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨sorry, rfl⟩  -- ready is stopped
+        simp [bareMetalStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | deploy => simp [bareMetalActionMap] at hMap
       | commission => simp [bareMetalActionMap] at hMap
       | allocate => simp [bareMetalActionMap] at hMap
@@ -317,12 +317,7 @@ def transientActionMap : TransientAction α → Option (DistilledAction α)
   | .platform .terminate => some .stop
   | .service a => some (.service a)
 
-/-- Every transient LTS simulates the distilled LTS.
-    Note: This simulation has edge cases where the state-independent action map
-    doesn't perfectly preserve the distilled transition relation (e.g., `requestArrives`
-    from `idle` maps to `start` but idle is already `running` in distilled view).
-    These cases are handled with sorry as they represent a known limitation of
-    functional (vs relational) action maps. -/
+/-- Every transient LTS simulates the distilled LTS. -/
 theorem transient_simulates_distilled :
     MappedForwardSimulation (transientLTS (α := α)) (distilledLTS (α := α))
       transientStateMap transientActionMap := by
@@ -337,19 +332,19 @@ theorem transient_simulates_distilled :
         simp [transientActionMap] at hMap; subst hMap
         simp [transientStateMap]; obtain ⟨h, rfl⟩ := hTr
         cases h with
-        | inl h => subst h; exact ⟨rfl, rfl⟩
-        | inr h => subst h; exact ⟨sorry, rfl⟩  -- idle→active: idle is already running
+        | inl h => subst h; rfl
+        | inr h => subst h; rfl
       | allRequestsComplete => simp [transientActionMap] at hMap
       | idleTimeout =>
         simp [transientActionMap] at hMap; subst hMap
-        simp [transientStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩
+        simp [transientStateMap]; obtain ⟨rfl, rfl⟩ := hTr; rfl
       | terminate =>
         simp [transientActionMap] at hMap; subst hMap
         simp [transientStateMap]; obtain ⟨h, rfl⟩ := hTr
         rcases h with rfl | rfl | rfl
-        · exact ⟨rfl, rfl⟩
-        · exact ⟨rfl, rfl⟩
-        · exact ⟨sorry, rfl⟩  -- shuttingDown→shuttingDown: already stopped
+        · rfl
+        · rfl
+        · rfl
     | service a =>
       simp [transientActionMap] at hMap; subst hMap
       simp [transientStateMap]; obtain ⟨rfl, rfl⟩ := hTr; exact ⟨rfl, rfl⟩

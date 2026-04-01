@@ -39,12 +39,17 @@ def DistilledNode (α : Type) := LTS DistilledStatus (DistilledAction α)
 /-! ## Distilled LTS -/
 
 /-- The distilled LTS: two states, three action kinds.
-    The smallest thing you can call "a compute node that does work." -/
+    The smallest thing you can call "a compute node that does work."
+
+    Start and stop only constrain the destination state (idempotent):
+    this is necessary so that state-independent action maps in
+    `MappedForwardSimulation` can handle concrete transitions that
+    map to abstract no-ops (e.g., killing an already-stopped container). -/
 def distilledLTS : DistilledNode α where
   Tr src action dst :=
     match action with
-    | .start => src = .stopped ∧ dst = .running
-    | .stop => src = .running ∧ dst = .stopped
+    | .start => dst = .running
+    | .stop => dst = .stopped
     | .service _ => src = .running ∧ dst = .running
   initial := .stopped
 

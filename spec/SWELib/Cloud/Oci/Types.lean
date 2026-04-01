@@ -99,6 +99,8 @@ structure LinuxConfig where
   namespaces : Array SWELib.OS.Namespace := #[]
   /-- Cgroup configuration. -/
   cgroups : SWELib.OS.Cgroup := ⟨"/"⟩
+  /-- Resource limits (memory, CPU, PIDs). -/
+  resources : Array SWELib.OS.CgroupLimit := #[]
   /-- Seccomp profile. -/
   seccomp : Option Seccomp := none
   /-- Masked paths (paths to mask with tmpfs). -/

@@ -59,10 +59,11 @@ def ContainerStore.insert (store : ContainerStore) (info : DockerContainerInfo) 
     else if key = info.name then some info
     else store key
 
-/-- Remove a container from the store by ID. -/
-def ContainerStore.remove (store : ContainerStore) (id : String) : ContainerStore :=
-  -- Also need to remove by name, but we'd need the name. For now, remove by key.
-  fun key => if key = id then none else store key
+/-- Remove a container from the store by ID and name. -/
+def ContainerStore.remove (store : ContainerStore) (id : String) (name : String := "") : ContainerStore :=
+  fun key => if key = id then none
+             else if !name.isEmpty && key = name then none
+             else store key
 
 /-- Check if a container exists. -/
 def ContainerStore.contains (store : ContainerStore) (idOrName : String) : Bool :=

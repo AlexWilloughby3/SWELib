@@ -159,7 +159,7 @@ structure DockerRunConfig where
   /-- Keep STDIN open (`--interactive`). -/
   interactive : Bool := false
   /-- Run in background (`--detach`). -/
-  detach : Bool := true
+  detach : Bool := false
   /-- Auto-remove on exit (`--rm`). -/
   autoRemove : Bool := false
   /-- Restart policy (`--restart`). -/

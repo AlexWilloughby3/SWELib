@@ -11,6 +11,7 @@
 #include <libssh2.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* ── External object classes with finalizers ──────────────────────── */
 

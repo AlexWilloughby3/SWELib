@@ -57,6 +57,7 @@ import SWELibImpl.Networking.HttpClient
 import SWELibImpl.Networking.HttpServer
 import SWELibImpl.Networking.HttpsServer
 import SWELibImpl.Networking.DnsResolver
+import SWELibImpl.Networking.FastApi
 
 -- Database
 import SWELibImpl.Db.PgClient

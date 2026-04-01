@@ -46,7 +46,7 @@ structure DatabaseState where
   schema : Schema
   /-- Applied migrations, ordered by version. -/
   history : MigrationHistory
-  /-- History is strictly ordered by version. -/
+  /-- Proof that history is strictly ordered by version. -/
   h_ordered : List.Pairwise (fun a b => a.version < b.version) history
 
 -- ═══════════════════════════════════════════════════════════

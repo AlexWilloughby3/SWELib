@@ -25,6 +25,7 @@ import SWELib.Networking.Graphql
 import SWELib.Networking.Websocket
 import SWELib.Networking.Proxy
 import SWELib.Networking.Ssh
+import SWELib.Networking.FastApi
 
 -- Distributed
 import SWELib.Distributed.Core

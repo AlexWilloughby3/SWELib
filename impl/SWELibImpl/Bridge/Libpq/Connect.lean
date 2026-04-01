@@ -66,4 +66,12 @@ opaque pq_reset : ConnectionHandle → IO Bool
 @[extern "swelib_pq_ping"]
 opaque pq_ping : ConnectionHandle → IO Bool
 
+/-- Extract the raw PGconn* pointer from a ConnectionHandle as USize.
+    Used to pass the connection to FFI parameterized query functions.
+
+    TRUST: ConnectionHandle wraps PGconn* as a lean_external_object.
+    Issue: https://github.com/SWELib/SWELib/issues/XXX -/
+@[extern "swelib_conn_handle_to_usize"]
+opaque connHandleToUSize : @& ConnectionHandle → USize
+
 end SWELibImpl.Bridge.Libpq

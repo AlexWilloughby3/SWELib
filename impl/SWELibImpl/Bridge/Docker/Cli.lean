@@ -86,17 +86,18 @@ axiom docker_inspect_faithful
     | .error _ => True
 
 /-- Axiom: Non-privileged containers created with default Docker settings
-    have namespace isolation (pid, net, mnt, ipc, uts, user, cgroup).
+    have namespace isolation (pid, net, mnt, ipc, uts).
 
     TRUST: Docker's default container creation invokes clone(2) with
     CLONE_NEWPID | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWIPC |
-    CLONE_NEWUTS | CLONE_NEWUSER | CLONE_NEWCGROUP flags.
+    CLONE_NEWUTS flags. User and cgroup namespaces require explicit
+    `--userns`/`--cgroupns` flags.
     This is the core isolation guarantee. -/
 axiom docker_isolation_from_flags
     (config : DockerRunConfig)
     (hNotPriv : config.privileged = false)
     (hBridge : config.networkMode = "bridge") :
-    (effectiveNamespaces config).size = 7
+    (effectiveNamespaces config).size = 5
 
 /-- Axiom: Docker's capability restriction matches our model.
     Non-privileged containers only get the default capability set.
