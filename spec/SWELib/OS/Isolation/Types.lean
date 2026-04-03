@@ -145,6 +145,82 @@ structure SshResult where
 /-- SSH is a service-level operation: requires VM to be running, does not change state. -/
 def sshPrecondition (status : VMStatus) : Prop := status = .running
 
+/-! ## VM SCP Types -/
+
+/-- An SCP endpoint: either a local path or a remote `[[USER@]INSTANCE:]PATH`.
+    References: https://cloud.google.com/sdk/gcloud/reference/compute/scp -/
+structure ScpEndpoint where
+  /-- Optional username for the remote side. -/
+  user : Option String := none
+  /-- Instance name. If `none`, the endpoint is a local path. -/
+  instance_ : Option String := none
+  /-- Filesystem path (local or remote). -/
+  path : String
+  deriving Repr, DecidableEq
+
+/-- Whether an SCP endpoint refers to a remote instance. -/
+def ScpEndpoint.isRemote (e : ScpEndpoint) : Bool := e.instance_.isSome
+
+/-- Whether an SCP endpoint refers to the local filesystem. -/
+def ScpEndpoint.isLocal (e : ScpEndpoint) : Bool := e.instance_.isNone
+
+/-- Transfer direction, inferred from the source/destination endpoints. -/
+inductive ScpDirection where
+  /-- All sources are local, destination is remote. -/
+  | upload
+  /-- All sources are remote, destination is local. -/
+  | download
+  deriving DecidableEq, Repr
+
+/-- Configuration for `gcloud compute scp` file transfers.
+    References: https://cloud.google.com/sdk/gcloud/reference/compute/scp -/
+structure ScpConfig where
+  /-- Use internal IP address instead of external. -/
+  internalIp : Bool := false
+  /-- Tunnel through Identity-Aware Proxy. -/
+  tunnelThroughIap : Bool := false
+  /-- SSH key file path override. -/
+  sshKeyFile : Option String := none
+  /-- Disable strict host key checking. -/
+  strictHostKeyChecking : Bool := true
+  /-- Copy directories recursively. -/
+  recurse : Bool := false
+  /-- Enable gzip compression over the wire. -/
+  compress : Bool := false
+  /-- Non-default SSH port. -/
+  port : Option Nat := none
+  /-- Print the scp(1) invocation without executing. -/
+  dryRun : Bool := false
+  /-- Raw flags passed through to scp(1). -/
+  scpFlags : List String := []
+  deriving Repr
+
+/-- Result of an SCP file transfer operation. -/
+structure ScpResult where
+  /-- Standard output from scp. -/
+  stdout : String
+  /-- Standard error from scp. -/
+  stderr : String
+  /-- Exit code of the scp process. -/
+  exitCode : UInt32
+  deriving Repr
+
+/-- SCP uses the same precondition as SSH: VM must be running. -/
+def scpPrecondition (status : VMStatus) : Prop := status = .running
+
+/-- IAP tunneling and internal-IP are mutually exclusive for both SSH and SCP. -/
+def iapInternalIpExclusive (tunnelThroughIap internalIp : Bool) : Prop :=
+  ¬(tunnelThroughIap ∧ internalIp)
+
+/-- All sources in an SCP transfer must have the same locality (all local or all remote). -/
+def scpSourcesHomogeneous (sources : List ScpEndpoint) : Prop :=
+  (∀ s ∈ sources, s.isLocal) ∨ (∀ s ∈ sources, s.isRemote)
+
+/-- For downloads, all remote sources must reference the same instance. -/
+def scpDownloadSingleInstance (sources : List ScpEndpoint) : Prop :=
+  ∀ s₁ s₂, s₁ ∈ sources → s₂ ∈ sources →
+    s₁.instance_ = s₂.instance_
+
 /-! ## Bare Metal Types -/
 
 /-- Bare metal provisioning/operational lifecycle states (MAAS model). -/

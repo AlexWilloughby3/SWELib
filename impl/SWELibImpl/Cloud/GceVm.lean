@@ -281,4 +281,108 @@ def sshInstance (h : VMHandle)
     exitCode := result.exitCode
   }
 
+/-! ## SCP -/
+
+/-- Copy files to a running VM via `gcloud compute scp`.
+    Sources are local paths; the destination is a remote path on the VM.
+    Validates the VM is in `running` state before executing.
+
+    Maps to `gcloud compute scp SRC... INSTANCE:DEST --project=PROJECT --zone=ZONE`. -/
+def scpToInstance (h : VMHandle)
+    (localSources : List String)
+    (remoteDest : String)
+    (config : SWELib.OS.Isolation.ScpConfig := {})
+    : IO SWELib.OS.Isolation.ScpResult := do
+  if localSources.isEmpty then
+    throw <| IO.userError "SCP requires at least one source path"
+  if config.tunnelThroughIap && config.internalIp then
+    throw <| IO.userError
+      "--tunnel-through-iap and --internal-ip are mutually exclusive"
+  let current ← h.status.get
+  unless current == .running do
+    throw <| IO.userError
+      s!"SCP requires VM to be running, but current status is {vmStatusToString current}"
+  let dest := s!"{h.name}:{remoteDest}"
+  let mut args : List String := ["compute", "scp"]
+  if config.recurse then
+    args := args ++ ["--recurse"]
+  if config.compress then
+    args := args ++ ["--compress"]
+  args := args ++ localSources ++ [dest]
+  args := args ++ ["--project", h.project, "--zone", h.zone]
+  if config.internalIp then
+    args := args ++ ["--internal-ip"]
+  if config.tunnelThroughIap then
+    args := args ++ ["--tunnel-through-iap"]
+  if let some keyFile := config.sshKeyFile then
+    args := args ++ ["--ssh-key-file", keyFile]
+  if !config.strictHostKeyChecking then
+    args := args ++ ["--strict-host-key-checking=no"]
+  if let some p := config.port then
+    args := args ++ ["--port", toString p]
+  if config.dryRun then
+    args := args ++ ["--dry-run"]
+  for flag in config.scpFlags do
+    args := args ++ ["--scp-flag", flag]
+  let result ← IO.Process.output {
+    cmd := "gcloud"
+    args := args.toArray
+  }
+  return {
+    stdout := result.stdout
+    stderr := result.stderr
+    exitCode := result.exitCode
+  }
+
+/-- Copy files from a running VM via `gcloud compute scp`.
+    Sources are remote paths on the VM; the destination is a local path.
+    Validates the VM is in `running` state before executing.
+
+    Maps to `gcloud compute scp INSTANCE:SRC... DEST --project=PROJECT --zone=ZONE`. -/
+def scpFromInstance (h : VMHandle)
+    (remoteSources : List String)
+    (localDest : String)
+    (config : SWELib.OS.Isolation.ScpConfig := {})
+    : IO SWELib.OS.Isolation.ScpResult := do
+  if remoteSources.isEmpty then
+    throw <| IO.userError "SCP requires at least one source path"
+  if config.tunnelThroughIap && config.internalIp then
+    throw <| IO.userError
+      "--tunnel-through-iap and --internal-ip are mutually exclusive"
+  let current ← h.status.get
+  unless current == .running do
+    throw <| IO.userError
+      s!"SCP requires VM to be running, but current status is {vmStatusToString current}"
+  let sources := remoteSources.map fun src => s!"{h.name}:{src}"
+  let mut args : List String := ["compute", "scp"]
+  if config.recurse then
+    args := args ++ ["--recurse"]
+  if config.compress then
+    args := args ++ ["--compress"]
+  args := args ++ sources ++ [localDest]
+  args := args ++ ["--project", h.project, "--zone", h.zone]
+  if config.internalIp then
+    args := args ++ ["--internal-ip"]
+  if config.tunnelThroughIap then
+    args := args ++ ["--tunnel-through-iap"]
+  if let some keyFile := config.sshKeyFile then
+    args := args ++ ["--ssh-key-file", keyFile]
+  if !config.strictHostKeyChecking then
+    args := args ++ ["--strict-host-key-checking=no"]
+  if let some p := config.port then
+    args := args ++ ["--port", toString p]
+  if config.dryRun then
+    args := args ++ ["--dry-run"]
+  for flag in config.scpFlags do
+    args := args ++ ["--scp-flag", flag]
+  let result ← IO.Process.output {
+    cmd := "gcloud"
+    args := args.toArray
+  }
+  return {
+    stdout := result.stdout
+    stderr := result.stderr
+    exitCode := result.exitCode
+  }
+
 end SWELibImpl.Cloud.GceVm
