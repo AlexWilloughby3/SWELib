@@ -121,4 +121,57 @@ axiom docker_pull_fetches_valid_image
     | .ok state' => state'.hasImage imageRef
     | .error _ => True
 
+/-- Axiom: `docker build` with valid config produces an image that
+    is available in the local image store under all specified tags.
+
+    TRUST: Docker's build engine (BuildKit / legacy builder) executes
+    the Dockerfile and stores the result in the image store. -/
+axiom docker_build_produces_image
+    (state : DockerState) (config : DockerBuildConfig)
+    (imageConfig : DockerImageConfig) :
+    config.isValid →
+    match dockerBuild state config imageConfig with
+    | .ok (state', output) =>
+      -- The image is available by ID
+      state'.hasImage output.imageId ∧
+      -- The image is available by all tags
+      ∀ tag ∈ config.tags.toList, state'.hasImage tag
+    | .error _ => True
+
+/-- Axiom: `docker tag` creates an alias that resolves to the same image.
+
+    TRUST: Docker's tag command creates a reference in the local image
+    store pointing to the same image layers. -/
+axiom docker_tag_creates_alias
+    (state : DockerState) (source target : String) :
+    state.hasImage source →
+    match dockerTag state source target with
+    | .ok state' => state'.hasImage target
+    | .error _ => True
+
+/-- Axiom: `docker network create` produces a network that is inspectable.
+
+    TRUST: Docker's network subsystem (libnetwork) creates the network
+    and bridge/overlay infrastructure. -/
+axiom docker_network_create_exists
+    (state : DockerState) (config : NetworkCreateConfig) :
+    config.isValid →
+    !state.networks.contains config.name →
+    match dockerNetworkCreate state config with
+    | .ok (state', _netId) =>
+      (state'.findNetwork config.name).isSome
+    | .error _ => True
+
+/-- Axiom: `docker volume create` produces a volume that is inspectable.
+
+    TRUST: Docker's volume driver creates the volume directory on the host. -/
+axiom docker_volume_create_exists
+    (state : DockerState) (config : VolumeCreateConfig) :
+    !config.name.isEmpty →
+    !state.volumes.contains config.name →
+    match dockerVolumeCreate state config with
+    | .ok (state', _name) =>
+      (state'.findVolume config.name).isSome
+    | .error _ => True
+
 end SWELibImpl.Bridge.Docker

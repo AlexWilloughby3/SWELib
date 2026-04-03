@@ -2,6 +2,9 @@ import SWELib.Cloud.Docker.Types
 import SWELib.Cloud.Docker.Errors
 import SWELib.Cloud.Docker.State
 import SWELib.Cloud.Docker.Cli
+import SWELib.Cloud.Docker.Build
+import SWELib.Cloud.Docker.Network
+import SWELib.Cloud.Docker.Volume
 import SWELib.Cloud.Docker.Operations
 import SWELib.Cloud.Docker.Invariants
 
@@ -56,16 +59,29 @@ export SWELib.Cloud.Docker (
   DockerCliError
 )
 export SWELib.Cloud.Docker (
-  DockerState ImageStore ContainerStore
+  DockerState ImageStore ContainerStore NetworkStore VolumeStore
   DockerState.empty DockerState.findContainer DockerState.findImage DockerState.hasImage
 )
 export SWELib.Cloud.Docker (
   serializeFlags DockerRunConfig.fromImage DockerRunConfig.fromImageCmd
+  serializeBuildFlags DockerBuildConfig DockerBuildOutput DockerfileInstruction Dockerfile BuildStage
+  BuildPlatform
+)
+export SWELib.Cloud.Docker (
+  NetworkDriver IpamSubnet DockerNetwork NetworkCreateConfig
+  serializeNetworkCreateFlags
+)
+export SWELib.Cloud.Docker (
+  DockerVolume VolumeCreateConfig
+  serializeVolumeCreateFlags
 )
 export SWELib.Cloud.Docker (
   mergeWithImageDefaults effectiveCommand effectiveCapabilities effectiveNamespaces
   toLinuxConfig toOciConfig
   dockerPull dockerCreate dockerStart dockerStop dockerRm dockerRun dockerExec dockerInspect
+  dockerBuild dockerTag dockerRmi
+  dockerNetworkCreate dockerNetworkRm dockerNetworkConnect dockerNetworkDisconnect
+  dockerVolumeCreate dockerVolumeRm
   defaultCapabilities allCapabilities
 )
 

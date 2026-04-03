@@ -132,4 +132,126 @@ def dockerRunWithPull (cfg : DockerConfig) (config : DockerRunConfig) :
       pure (.error e)
     | .ok _ => pure (.ok containerId)
 
+/-! ## Build -/
+
+/-- `docker build [flags] <context>` — Build an image from a Dockerfile.
+    Returns the build output (image ID on the last line of stdout). -/
+def dockerBuild (cfg : DockerConfig) (buildCfg : DockerBuildConfig) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["build"] ++ serializeBuildFlags buildCfg)
+
+/-! ## Image Management -/
+
+/-- `docker tag <source> <target>` — Create a tag for an image. -/
+def dockerTag (cfg : DockerConfig) (source target : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin (baseArgs cfg ++ #["tag", source, target]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker push <imageRef>` — Push an image to a registry. -/
+def dockerPush (cfg : DockerConfig) (imageRef : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin (baseArgs cfg ++ #["push", imageRef]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker rmi <imageRef> [-f]` — Remove an image. -/
+def dockerRmi (cfg : DockerConfig) (imageRef : String) (force : Bool := false) :
+    IO (Except String Unit) := do
+  let forceFlag := if force then #["--force"] else #[]
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["rmi"] ++ forceFlag ++ #[imageRef]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker image inspect <imageRef>` — Get image info (JSON). -/
+def dockerImageInspect (cfg : DockerConfig) (imageRef : String) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["image", "inspect", imageRef])
+
+/-! ## Network Management -/
+
+/-- `docker network create [opts] <name>` — Create a network. Returns network ID. -/
+def dockerNetworkCreate (cfg : DockerConfig) (netCfg : NetworkCreateConfig) :
+    IO (Except String String) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["network", "create"] ++ serializeNetworkCreateFlags netCfg) with
+  | .ok stdout => pure (.ok stdout.trimAscii.toString)
+  | .error e => pure (.error e)
+
+/-- `docker network rm <name>` — Remove a network. -/
+def dockerNetworkRm (cfg : DockerConfig) (nameOrId : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["network", "rm", nameOrId]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker network ls` — List networks (JSON format). -/
+def dockerNetworkLs (cfg : DockerConfig) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["network", "ls", "--format", "{{json .}}"])
+
+/-- `docker network inspect <name>` — Get network info (JSON). -/
+def dockerNetworkInspect (cfg : DockerConfig) (nameOrId : String) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["network", "inspect", nameOrId])
+
+/-- `docker network connect <network> <container>` — Connect container to network. -/
+def dockerNetworkConnect (cfg : DockerConfig) (network container : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["network", "connect", network, container]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker network disconnect <network> <container>` — Disconnect container from network. -/
+def dockerNetworkDisconnect (cfg : DockerConfig) (network container : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["network", "disconnect", network, container]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-! ## Volume Management -/
+
+/-- `docker volume create [opts] [name]` — Create a volume. Returns volume name. -/
+def dockerVolumeCreate (cfg : DockerConfig) (volCfg : VolumeCreateConfig) :
+    IO (Except String String) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["volume", "create"] ++ serializeVolumeCreateFlags volCfg) with
+  | .ok stdout => pure (.ok stdout.trimAscii.toString)
+  | .error e => pure (.error e)
+
+/-- `docker volume rm <name>` — Remove a volume. -/
+def dockerVolumeRm (cfg : DockerConfig) (name : String) :
+    IO (Except String Unit) := do
+  match ← dockerExec cfg.dockerBin
+      (baseArgs cfg ++ #["volume", "rm", name]) with
+  | .ok _ => pure (.ok ())
+  | .error e => pure (.error e)
+
+/-- `docker volume ls` — List volumes (JSON format). -/
+def dockerVolumeLs (cfg : DockerConfig) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["volume", "ls", "--format", "{{json .}}"])
+
+/-- `docker volume inspect <name>` — Get volume info (JSON). -/
+def dockerVolumeInspect (cfg : DockerConfig) (name : String) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["volume", "inspect", name])
+
+/-- `docker volume prune -f` — Remove all unused volumes. -/
+def dockerVolumePrune (cfg : DockerConfig) :
+    IO (Except String String) :=
+  dockerExec cfg.dockerBin
+    (baseArgs cfg ++ #["volume", "prune", "--force"])
+
 end SWELibImpl.Cloud

@@ -31,6 +31,20 @@ inductive DockerCliError where
   | commandFailed (exitCode : Nat) (stderr : String)
   /-- Container is not running (for exec/stop/kill). -/
   | containerNotRunning (id : String)
+  /-- Build failed. -/
+  | buildFailed (msg : String)
+  /-- Network not found. -/
+  | networkNotFound (name : String)
+  /-- Network name conflict. -/
+  | networkConflict (name : String)
+  /-- Volume not found. -/
+  | volumeNotFound (name : String)
+  /-- Volume name conflict. -/
+  | volumeConflict (name : String)
+  /-- Volume is in use by a container. -/
+  | volumeInUse (name : String)
+  /-- Image is in use by a container. -/
+  | imageInUse (ref : String)
   /-- Wrapped OCI error. -/
   | ociError (err : SWELib.Cloud.Oci.OciError)
   deriving Repr, Inhabited
@@ -45,6 +59,13 @@ instance : ToString DockerCliError where
     | .invalidArg msg => s!"invalid argument: {msg}"
     | .commandFailed code stderr => s!"command failed (exit {code}): {stderr}"
     | .containerNotRunning id => s!"container {id} is not running"
+    | .buildFailed msg => s!"build failed: {msg}"
+    | .networkNotFound name => s!"network not found: {name}"
+    | .networkConflict name => s!"network name conflict: '{name}' already exists"
+    | .volumeNotFound name => s!"volume not found: {name}"
+    | .volumeConflict name => s!"volume name conflict: '{name}' already exists"
+    | .volumeInUse name => s!"volume '{name}' is in use"
+    | .imageInUse ref => s!"image '{ref}' is in use by a container"
     | .ociError err => s!"OCI error: {err}"
 
 /-- Check if an error indicates the daemon is unreachable. -/

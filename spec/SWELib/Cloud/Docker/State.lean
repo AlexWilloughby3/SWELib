@@ -1,5 +1,7 @@
 import SWELib.Cloud.Docker.Types
 import SWELib.Cloud.Docker.Errors
+import SWELib.Cloud.Docker.Network
+import SWELib.Cloud.Docker.Volume
 import SWELib.Cloud.Oci.State
 
 /-!
@@ -78,6 +80,10 @@ structure DockerState where
   images : ImageStore
   /-- Container store. -/
   containers : ContainerStore
+  /-- Network store. -/
+  networks : NetworkStore
+  /-- Volume store. -/
+  volumes : VolumeStore
   /-- The underlying OCI container table (for spec-level reasoning). -/
   ociTable : SWELib.Cloud.Oci.ContainerTable
 
@@ -85,6 +91,8 @@ structure DockerState where
 def DockerState.empty : DockerState :=
   { images := ImageStore.empty
     containers := ContainerStore.empty
+    networks := NetworkStore.empty
+    volumes := VolumeStore.empty
     ociTable := SWELib.Cloud.Oci.ContainerTable.empty }
 
 /-- Look up a container. -/
@@ -98,6 +106,14 @@ def DockerState.findImage (state : DockerState) (ref : String) : Option DockerIm
 /-- Check if an image is available locally. -/
 def DockerState.hasImage (state : DockerState) (ref : String) : Bool :=
   state.images.contains ref
+
+/-- Look up a network. -/
+def DockerState.findNetwork (state : DockerState) (nameOrId : String) : Option DockerNetwork :=
+  state.networks.lookup nameOrId
+
+/-- Look up a volume. -/
+def DockerState.findVolume (state : DockerState) (name : String) : Option DockerVolume :=
+  state.volumes.lookup name
 
 /-! ## State Theorems -/
 

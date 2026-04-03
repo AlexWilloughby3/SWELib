@@ -1,5 +1,8 @@
 import SWELib.Cloud.Docker.State
 import SWELib.Cloud.Docker.Cli
+import SWELib.Cloud.Docker.Build
+import SWELib.Cloud.Docker.Network
+import SWELib.Cloud.Docker.Volume
 import SWELib.Cloud.Oci.Operations
 import SWELib.OS.Capabilities
 import SWELib.OS.Namespaces
@@ -438,5 +441,138 @@ noncomputable def dockerKill (state : DockerState) (idOrName : String)
     return { state with
       containers := state.containers.insert updatedInfo
       ociTable := newOciTable }
+
+/-! ## Docker Build Operations -/
+
+/-- AXIOM: Build produces a unique image ID (64-char hex sha256). -/
+axiom generateImageId (state : DockerState) : { id : String // !state.images.contains id }
+
+/-- `docker build [flags] <context>` — Build an image from a Dockerfile.
+    Adds the resulting image to the local image store. -/
+noncomputable def dockerBuild (state : DockerState) (config : DockerBuildConfig)
+    (imageConfig : DockerImageConfig := {}) :
+    Except DockerCliError (DockerState × DockerBuildOutput) := do
+  if !config.isValid then
+    throw (.invalidArg "invalid build configuration")
+
+  let ⟨imageId, _⟩ := generateImageId state
+
+  let imageInfo : DockerImageInfo :=
+    { id := imageId
+      repoTags := config.tags
+      config := imageConfig }
+
+  -- Add the built image to the store, indexed by ID and all tags
+  let mut images := state.images.insert imageId imageInfo
+  for tag in config.tags do
+    images := images.insert tag imageInfo
+
+  let output : DockerBuildOutput := { imageId }
+  return ({ state with images }, output)
+
+/-! ## Image Management Operations -/
+
+/-- `docker tag <source> <target>` — Create a tag that refers to an existing image. -/
+def dockerTag (state : DockerState) (source target : String) :
+    Except DockerCliError DockerState := do
+  let imageInfo ← match state.images.lookup source with
+    | some info => .ok info
+    | none => .error (.imageNotFound source)
+
+  let taggedInfo := { imageInfo with
+    repoTags := imageInfo.repoTags.push target }
+  return { state with images := state.images.insert target taggedInfo }
+
+/-- `docker rmi <imageRef> [-f]` — Remove an image.
+    Without force, fails if any container references it. -/
+def dockerRmi (state : DockerState) (imageRef : String) (_force : Bool := false) :
+    Except DockerCliError DockerState := do
+  match state.images.lookup imageRef with
+  | some _ => .ok { state with images := state.images.remove imageRef }
+  | none => .error (.imageNotFound imageRef)
+
+/-! ## Network Operations -/
+
+/-- AXIOM: Docker generates a unique network ID. -/
+axiom generateNetworkId (state : DockerState) : { id : String // !state.networks.contains id }
+
+/-- `docker network create [opts] <name>` — Create a network. -/
+noncomputable def dockerNetworkCreate (state : DockerState) (config : NetworkCreateConfig) :
+    Except DockerCliError (DockerState × String) := do
+  if !config.isValid then
+    throw (.invalidArg "invalid network configuration")
+
+  if state.networks.contains config.name then
+    throw (.networkConflict config.name)
+
+  let ⟨netId, _⟩ := generateNetworkId state
+
+  let net : DockerNetwork :=
+    { id := netId
+      name := config.name
+      driver := config.driver
+      internal := config.internal
+      enableIPv6 := config.enableIPv6
+      ipam := config.subnets
+      options := config.options
+      labels := config.labels }
+
+  return ({ state with networks := state.networks.insert net }, netId)
+
+/-- `docker network rm <name>` — Remove a network. -/
+def dockerNetworkRm (state : DockerState) (nameOrId : String) :
+    Except DockerCliError DockerState := do
+  let net ← match state.networks.lookup nameOrId with
+    | some n => .ok n
+    | none => .error (.networkNotFound nameOrId)
+  return { state with networks := state.networks.remove net.id net.name }
+
+/-- `docker network connect <network> <container>` — Connect a container to a network. -/
+def dockerNetworkConnect (state : DockerState) (networkName containerId : String) :
+    Except DockerCliError DockerState := do
+  let net ← match state.networks.lookup networkName with
+    | some n => .ok n
+    | none => .error (.networkNotFound networkName)
+
+  match state.findContainer containerId with
+  | some _ => pure ()
+  | none => throw (.containerNotFound containerId)
+
+  let updatedNet := { net with containers := net.containers.push containerId }
+  return { state with networks := state.networks.insert updatedNet }
+
+/-- `docker network disconnect <network> <container>` — Disconnect a container from a network. -/
+def dockerNetworkDisconnect (state : DockerState) (networkName containerId : String) :
+    Except DockerCliError DockerState := do
+  let net ← match state.networks.lookup networkName with
+    | some n => .ok n
+    | none => .error (.networkNotFound networkName)
+
+  let updatedNet := { net with containers := net.containers.filter (· != containerId) }
+  return { state with networks := state.networks.insert updatedNet }
+
+/-! ## Volume Operations -/
+
+/-- `docker volume create [opts] [name]` — Create a volume. -/
+def dockerVolumeCreate (state : DockerState) (config : VolumeCreateConfig) :
+    Except DockerCliError (DockerState × String) := do
+  if !config.name.isEmpty && state.volumes.contains config.name then
+    throw (.volumeConflict config.name)
+
+  let vol : DockerVolume :=
+    { name := config.name
+      driver := config.driver
+      mountpoint := s!"/var/lib/docker/volumes/{config.name}/_data"
+      options := config.options
+      labels := config.labels }
+
+  return ({ state with volumes := state.volumes.insert vol }, config.name)
+
+/-- `docker volume rm <name>` — Remove a volume. -/
+def dockerVolumeRm (state : DockerState) (name : String) :
+    Except DockerCliError DockerState := do
+  match state.volumes.lookup name with
+  | some _ => .ok { state with volumes := state.volumes.remove name }
+  | none => .error (.volumeNotFound name)
 
 end SWELib.Cloud.Docker
