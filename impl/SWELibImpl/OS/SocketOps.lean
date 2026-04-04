@@ -40,8 +40,8 @@ def socketOptionToLevel (_opt : SocketOption) : UInt32 :=
 
 def socketOptionToName : SocketOption → UInt32
   | .SO_REUSEADDR => SWELibImpl.Ffi.Syscalls.SO_REUSEADDR
-  | .SO_REUSEPORT => 0x0200  -- macOS SO_REUSEPORT
-  | .SO_KEEPALIVE => 0x0008  -- macOS SO_KEEPALIVE
+  | .SO_REUSEPORT => 15  -- Linux SO_REUSEPORT
+  | .SO_KEEPALIVE => 9   -- Linux SO_KEEPALIVE
 
 /-! ## High-level operations -/
 

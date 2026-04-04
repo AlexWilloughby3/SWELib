@@ -260,10 +260,10 @@ opaque sigpending_ : IO (Except Errno UInt64)
 /-! ## Socket constants -/
 
 def AF_INET  : UInt32 := 2
-def AF_INET6 : UInt32 := 30  -- macOS; Linux uses 10
+def AF_INET6 : UInt32 := 10  -- Linux
 def SOCK_STREAM : UInt32 := 1
 def SOCK_DGRAM  : UInt32 := 2
-def SOL_SOCKET  : UInt32 := 0xFFFF  -- macOS; Linux uses 1
-def SO_REUSEADDR : UInt32 := 0x0004  -- macOS; Linux uses 2
+def SOL_SOCKET  : UInt32 := 1  -- Linux
+def SO_REUSEADDR : UInt32 := 2  -- Linux
 
 end SWELibImpl.Ffi.Syscalls
